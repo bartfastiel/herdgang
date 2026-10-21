@@ -13,7 +13,7 @@ const ITEMS: [string, string][] = [
   ['Häufig gemacht', 'Ist ein Rezept 3 Minuten lang offen, gilt es als gemacht – höchstens einmal in 6 Stunden. Die Startseite zeigt die Rezepte, die du am häufigsten machst, zuerst.'],
   ['Feedback', 'Nach dem Kochen notieren, was beim nächsten Mal anders sein soll. Daraus entsteht die nächste Version.'],
   ['Versionen', 'Jede Änderung ist eine neue Version; ältere bleiben erhalten. „Unterschiede“ zeigt, was sich geändert hat.'],
-  ['PDF', 'Speichert das Rezept so, wie es gerade angezeigt wird (mit umgerechneten Mengen), als PDF.'],
+  ['PDF', 'Speichert das Rezept so, wie es gerade angezeigt wird (mit umgerechneten Mengen), als PDF zum Ausdrucken – auf einer A4-Seite. Passt es nicht, fallen zuerst die Erklärungen weg, dann wird die Schrift kleiner.'],
 ];
 
 export function helpView(root: HTMLElement): void {
