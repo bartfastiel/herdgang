@@ -38,6 +38,21 @@ Timer: 25 min – Brownies aus dem Ofen nehmen
 - `Timer: <duration> – <what to do when it rings>`. Durations: `45 min`, `1 h 30 min`, `90 s`, `10–12 min` (rings at
   the lower bound). The text is the notification on a locked phone, so it must make sense on its own.
 - No links anywhere in a recipe.
+- A section whose title starts with `Variante` is optional: its ingredients are not part of the nutrition facts.
+
+## Nutrition facts
+
+The app computes them from the ingredients (`src/recipe/nutrition.ts`). What helps:
+
+- Weights for everything that counts: `- 2 Doraden = 800 g`, `- 1 Packung Flammkuchenteig = 260 g`. Without a weight
+  (and without a known piece weight) an ingredient is listed as „not counted“.
+- `Ergibt:` with a count („12 Stück“, „4 Portionen“) gives values per piece or portion; a finished weight („1 Brot (ca.
+  750 g)“, „450 g“, „2 Gläser (je etwa 150 g)“) adds values per 100 g.
+- Salt goes into the cooking water in the step with the pot of water (`- 4000 g Wasser`) or with words like
+  „Kochwasser“, „Salzwasser“, „abgießen“ – then only 10 % count. Fat counts 10 % when the step deep-fries („frittieren“,
+  „ausbacken“, „schwimmen“, „… cm hoch“) or the ingredient is „Frittierfett“.
+- Spices, dried herbs and flavourings count as nothing; the BLS does not list most of them and they hardly weigh
+  anything.
 
 ## Writing good recipes
 

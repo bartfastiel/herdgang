@@ -1,6 +1,7 @@
-// Builds the backend into dist-server/ (main.mjs, cli.mjs): one bundle per entry, Node built-ins only.
+// Builds the backend into dist-server/ (main.mjs, cli.mjs): one bundle per entry, Node built-ins only. The nutrition
+// table goes along for the command line (`nutrition`, `food`).
 import { build } from 'esbuild';
-import { rmSync } from 'node:fs';
+import { copyFileSync, rmSync } from 'node:fs';
 
 rmSync('dist-server', { recursive: true, force: true });
 await build({
@@ -13,4 +14,5 @@ await build({
   outExtension: { '.js': '.mjs' },
   logLevel: 'warning',
 });
-console.log('dist-server/ built: main.mjs, cli.mjs');
+copyFileSync('nutrition/bls.json', 'dist-server/bls.json');
+console.log('dist-server/ built: main.mjs, cli.mjs, bls.json');

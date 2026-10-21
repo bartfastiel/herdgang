@@ -9,6 +9,7 @@ const ITEMS: [string, string][] = [
   ['Erledigt', 'Die Schrittnummer antippen, dann wird der Schritt blass – so siehst du, wo du bist.'],
   ['Timer', 'Timer-Knopf beim Schritt antippen, wenn du so weit bist. Mehrere können gleichzeitig laufen; unten steht, wie lange noch. Ist die Zeit um, klingelt es mit dem Text des Schritts, bis du „Erledigt“ tippst.'],
   ['Zutaten', 'Alles zusammengerechnet, zum Einkaufen oder Bereitstellen. Abhaken, was da ist.'],
+  ['Nährwerte', 'Unter den Zutaten: ungefähre Werte pro Portion oder Stück, berechnet aus den Zutaten mit dem Bundeslebensmittelschlüssel. „Woher die Werte kommen“ zeigt, als was jede Zutat gerechnet ist – wer Rezepte bearbeiten darf, kann das dort ändern.'],
   ['Rückmeldungen', 'Nach dem Kochen notieren, was beim nächsten Mal anders sein soll. Daraus entsteht die nächste Version.'],
   ['Versionen', 'Jede Änderung ist eine neue Version; ältere bleiben erhalten. „Unterschiede“ zeigt, was sich geändert hat.'],
   ['PDF', 'Speichert das Rezept so, wie es gerade angezeigt wird (mit umgerechneten Mengen), als PDF.'],

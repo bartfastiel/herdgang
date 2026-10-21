@@ -29,7 +29,7 @@ export interface Config {
 export const SESSION_COOKIE = '__Host-hg';
 const SESSION_TTL = 90 * 24 * 3600 * 1000;
 const CHALLENGE_TTL = 5 * 60 * 1000;
-export const STORES = ['recipes', 'revisions', 'comments'];
+export const STORES = ['recipes', 'revisions', 'comments', 'foods'];
 export const ROLES = ['owner', 'editor', 'reader'];
 /** reachable without a session (sign-in page, icons, manifest) */
 const PUBLIC_PATHS = /^\/(login\/.*|icon[^/]*\.(svg|png)|manifest\.webmanifest|robots\.txt|favicon\.ico)$/;

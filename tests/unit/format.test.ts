@@ -136,3 +136,14 @@ test('number formatting', () => {
   assert.equal(fmtFraction(2), '2');
   assert.equal(fmtFraction(0.1), '¼');
 });
+
+test('a comma inside brackets belongs to the name; sizes and bunches have weights', () => {
+  const p: Problem[] = [];
+  const dough = parseIngredient('1 Packung Flammkuchenteig (Kühlregal, ausgerollt) = 260 g, kalt', 1, p);
+  assert.deepEqual([dough.name, dough.note, dough.grams], ['Flammkuchenteig (Kühlregal, ausgerollt)', 'kalt', 260]);
+  assert.equal(gramsOf(parseIngredient('2 Eier (Größe L)', 1, p)), 116);
+  assert.equal(gramsOf(parseIngredient('1 Ei', 1, p)), 50);
+  assert.equal(gramsOf(parseIngredient('½ Bund glatte Petersilie', 1, p)), 20);
+  assert.equal(gramsOf(parseIngredient('8 Blatt Basilikum', 1, p)), 4);
+  assert.deepEqual(p, []);
+});

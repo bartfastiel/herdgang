@@ -117,7 +117,10 @@ label { display: block; font-weight: 600; margin: 12px 0 6px; }
 .old-version { margin-bottom: 12px; }
 
 .equip { margin-bottom: 14px; }
-.equip summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.equip summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: 8px; }
+.equip summary::after { content: '▾'; margin-left: auto; color: var(--muted); }
+.equip[open] summary::after { content: '▴'; }
+.equip summary::-webkit-details-marker { display: none; }
 .equip ul { margin: 0; padding-left: 20px; }
 
 .sec-title { font-size: 19px; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 4px; margin: 20px 0 8px; }
@@ -171,6 +174,28 @@ label { display: block; font-weight: 600; margin: 12px 0 6px; }
 .ing.got .check { background: var(--accent); }
 .ing.got .nm, .ing.got .amt { text-decoration: line-through; color: var(--done); }
 .shop .uses { margin-left: auto; font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+/* nutrition facts */
+/* tall enough to tap, without making the line of facts taller */
+.facts button.kcal { min-height: 44px; margin: -12px 0; padding: 0 2px; border: 0; background: none; color: var(--accent); font-size: 15px; font-weight: 600; }
+.nutri { scroll-margin-top: 110px; }
+.facts-table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-variant-numeric: tabular-nums; }
+.facts-table th, .facts-table td { padding: 7px 4px; border-bottom: 1px solid var(--line); text-align: right; font-size: 15px; }
+.facts-table thead th { font-size: 13px; color: var(--muted); font-weight: 600; }
+.facts-table tbody th { text-align: left; font-weight: 600; }
+.facts-table tr.sub th { font-weight: 400; padding-left: 16px; color: var(--muted); }
+.sources .src { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.src-main { display: flex; gap: 10px; align-items: baseline; }
+.src-main .nm { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.src-main .g { margin-left: auto; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.src-food { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 15px; }
+.src-food > span { min-width: 0; overflow-wrap: anywhere; }
+.src-food button.link { margin-left: auto; flex: 0 0 auto; }
+.picker { margin: 8px 0 4px; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); display: grid; gap: 8px; }
+.pick-list { display: grid; gap: 6px; }
+.pick-list button { justify-content: space-between; text-align: left; gap: 10px; }
+.pick-list button span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.pick-list button .small { white-space: nowrap; }
 
 /* feedback and versions */
 .comment { border-left: 3px solid var(--accent); padding: 8px 12px; margin: 10px 0; background: var(--card); border-radius: 0 12px 12px 0; }

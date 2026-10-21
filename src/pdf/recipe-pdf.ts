@@ -17,6 +17,8 @@ export interface PdfOptions {
   version: number;
   date: number;
   yieldText?: string;
+  /** a short block after the steps (src/views/nutrition.ts) */
+  nutrition?: { title: string; text: string; source: string };
 }
 
 export function recipePdf(r: Recipe, opts: PdfOptions): Uint8Array {
@@ -148,6 +150,25 @@ export function recipePdf(r: Recipe, opts: PdfOptions): Uint8Array {
     }
     y = top + stepH;
     pdf.line(M, y - 7, M + W, y - 7, 0.4, RULE);
+  }
+
+  if (opts.nutrition) {
+    const n = opts.nutrition;
+    const lines = wrap(n.text, 'R', 9.5, W);
+    const source = wrap(n.source, 'R', 7.5, W);
+    if (y + 26 + lines.length * 13 + source.length * 10 > BOTTOM) newPage();
+    y += 4;
+    pdf.text(M, y + 10, n.title, 'B', 10, ACCENT);
+    y += 17;
+    for (const l of lines) {
+      pdf.text(M, y + 10, l, 'R', 9.5, INK);
+      y += 13;
+    }
+    y += 3;
+    for (const l of source) {
+      pdf.text(M, y + 8, l, 'R', 7.5, MUTED);
+      y += 10;
+    }
   }
 
   const total = pdf.pageCount;

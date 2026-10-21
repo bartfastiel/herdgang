@@ -1,10 +1,12 @@
-// Recipes, revisions and comments of a cookbook on the server side – for the command line (agents, import, export).
+// Recipes, revisions, comments and food choices of a cookbook on the server side – for the command line (agents,
+// import, export).
 // The app reads and writes the same records through /api/records; the shapes are defined in src/data/types.ts.
 import { randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { parse } from '../src/recipe/format.ts';
+import { foodKey } from '../src/recipe/nutrition.ts';
 export { context } from '../src/recipe/context.ts';
-import type { Comment, RecipeRec, Revision } from '../src/data/types.ts';
+import type { Comment, FoodChoice, RecipeRec, Revision } from '../src/data/types.ts';
 import { nextReceived } from './app.ts';
 
 const newId = () => randomBytes(12).toString('hex');
@@ -30,6 +32,32 @@ export function put(db: DatabaseSync, cookbook: string, store: string, data: { i
   db.prepare(
     'INSERT INTO records (cookbook_id, store, id, json, updated, received, deleted) VALUES (?, ?, ?, ?, ?, ?, 0) ON CONFLICT (cookbook_id, store, id) DO UPDATE SET json = excluded.json, updated = excluded.updated, received = excluded.received, deleted = 0',
   ).run(cookbook, store, data.id, JSON.stringify(data), updated, nextReceived(db, Date.now()));
+}
+
+/** tombstone, so that devices learn about the deletion */
+export function remove(db: DatabaseSync, cookbook: string, store: string, id: string, updated = Date.now()): void {
+  db.prepare('UPDATE records SET json = ?, updated = ?, received = ?, deleted = 1 WHERE cookbook_id = ? AND store = ? AND id = ?').run(
+    'null',
+    updated,
+    nextReceived(db, Date.now()),
+    cookbook,
+    store,
+    id,
+  );
+}
+
+/** foods chosen by hand: folded ingredient name → code ('' = not counted) */
+export function foodChoices(db: DatabaseSync, cookbook: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const f of rows<FoodChoice>(db, cookbook, 'foods')) out[f.id] = f.code;
+  return out;
+}
+
+/** which food an ingredient counts as in this cookbook; code '' = not counted, null = back to the automatic choice */
+export function chooseFood(db: DatabaseSync, cookbook: string, name: string, code: string | null, author: Author): void {
+  const id = foodKey(name);
+  if (code === null) remove(db, cookbook, 'foods', id);
+  else put(db, cookbook, 'foods', { id, name, code, author, created: Date.now() } as FoodChoice);
 }
 
 export interface Entry {
