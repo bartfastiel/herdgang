@@ -15,11 +15,19 @@
 //                                               new version (refused if the recipe has errors or version n is no longer current)
 //   import <file|dir> [--author Name] [--message "…"]   new recipes from .txt files; same title + different text → new version
 //   export <dir>                                current version of every recipe as <title>.txt
+//
+// Nutrition (table: bls.json next to cli.mjs, or nutrition/bls.json):
+//   nutrition <recipe> [--version n]            values per portion and in total; the food behind each ingredient
+//   bls <words>                                 search the table: code, name, kcal per 100 g
+//   food "<ingredient>" <code|none|auto>        count an ingredient as this food in the whole cookbook (none = not at
+//                                               all, auto = back to the automatic choice)
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parse } from '../src/recipe/format.ts';
+import { bases, facts, fmtValue, foodTable, NUTRIENTS, perBasis, searchFoods, type FoodFile, type FoodTable } from '../src/recipe/nutrition.ts';
+import { fmtGrams } from '../src/recipe/units.ts';
 import { createCookbook, createInvite, ROLES } from './app.ts';
-import { commit, context, cookbookId, entries, find, type Author } from './cookbook.ts';
+import { chooseFood, commit, context, cookbookId, entries, find, foodChoices, type Author } from './cookbook.ts';
 import { openDb } from './db.ts';
 
 const dataDir = process.env.DATA_DIR || 'data';
@@ -43,6 +51,15 @@ function user(key: string | undefined): string {
 
 function stdin(): string {
   return readFileSync(0, 'utf8');
+}
+
+function foods(): FoodTable {
+  for (const path of ['./bls.json', '../nutrition/bls.json']) {
+    try {
+      return foodTable(JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8')) as FoodFile);
+    } catch {}
+  }
+  throw new Error('Nutrition table not found (bls.json)');
 }
 
 try {
@@ -127,6 +144,37 @@ try {
       console.log(`${basename(f)} → v${r.version} ${title}`);
     }
     console.log(`${created} new, ${updated} updated`);
+  } else if (cmd === 'nutrition') {
+    const cb = cookbookId(db, opt('cookbook'));
+    const e = find(db, cb, positional()[0] || '');
+    const v = Number(opt('version') || e.revisions.length);
+    const rev = e.revisions[v - 1];
+    if (!rev) throw new Error('No version ' + v);
+    const r = parse(rev.source).recipe;
+    const f = facts(r, foods(), foodChoices(db, cb));
+    const bs = bases(r);
+    const cols = (cells: string[]) => cells.map((c, i) => (i ? c.padStart(14) : c.padEnd(30))).join('');
+    console.log(`${r.title}, version ${v}`);
+    console.log(cols(['', ...bs.map((b) => b.label)]));
+    NUTRIENTS.forEach((n, i) => console.log(cols([n.label, ...bs.map((b) => fmtValue(n.key, perBasis(f.total, b)[i]))])));
+    console.log('');
+    for (const l of f.lines) {
+      const grams = l.grams === undefined ? '–' : fmtGrams(l.counted) + ' g';
+      const food = l.match.food ? `${l.match.food.code} ${l.match.food.name}` : l.match.how === 'skip' ? 'not counted' : 'no values';
+      console.log(`step ${String(l.step).padStart(2)}  ${l.ing.name.padEnd(28)} ${grams.padStart(9)}  ${l.match.how.padEnd(6)} ${food}${l.why ? '  (' + l.why + ')' : ''}`);
+    }
+  } else if (cmd === 'bls') {
+    const query = positional().join(' ');
+    if (!query) throw new Error('search words missing');
+    for (const x of searchFoods(foods(), query, 20)) console.log(`${x.code}  ${x.name}  (${fmtValue('kcal', x.per100[0])} per 100 g)`);
+  } else if (cmd === 'food') {
+    const [name, code] = positional();
+    if (!name || !code) throw new Error('usage: food "<ingredient>" <code|none|auto>');
+    const table = foods();
+    const food = table.byCode.get(code);
+    if (code !== 'none' && code !== 'auto' && !food) throw new Error('Unknown code: ' + code);
+    chooseFood(db, cookbookId(db, opt('cookbook')), name, code === 'auto' ? null : food ? code : '', author());
+    console.log(`${name}: ${code === 'auto' ? 'automatic again' : food ? food.name : 'not counted'}`);
   } else if (cmd === 'export') {
     const cb = cookbookId(db, opt('cookbook'));
     const dir = positional()[0];
@@ -138,7 +186,9 @@ try {
     }
     console.log('exported to ' + dir);
   } else {
-    console.log('Commands: cookbook-create | cookbooks | invite | users | user-remove | logout | passkey-remove | audit | backup | recipes | show | context | commit | import | export');
+    console.log(
+      'Commands: cookbook-create | cookbooks | invite | users | user-remove | logout | passkey-remove | audit | backup | recipes | show | context | commit | import | export | nutrition | bls | food',
+    );
     process.exitCode = 1;
   }
 } catch (err) {

@@ -1,6 +1,6 @@
 // Builds dist/: hashed script and stylesheet, index.html with relative paths (runs under / and in previews under
-// /<path>/pr-<nr>/), manifest, icons and service worker. Plus dist/login/ with a small bundle of its own (without a
-// session only that page is reachable). `--serve` rebuilds on changes and serves dist/ on http://localhost:5173.
+// /<path>/pr-<nr>/), manifest, icons, the nutrition table (nutrition/bls.json, hashed) and service worker. Plus
+// dist/login/ with a small bundle of its own (without a session only that page is reachable). `--serve` rebuilds on changes and serves dist/ on http://localhost:5173.
 //
 // Environment: APP_VERSION (shown in the settings; default: package.json version + commit)
 //              PREVIEW=1  preview build: no sync with the server, a local database of its own, sample recipe
@@ -23,6 +23,8 @@ const VERSION = process.env.APP_VERSION || pkg.version + (commit ? ` (${commit})
 const PREVIEW = process.env.PREVIEW === '1';
 const SERVE = process.argv.includes('--serve');
 const SAMPLE = readFileSync(join(root, 'tests/fixtures/sample.txt'), 'utf8');
+const BLS = readFileSync(join(root, 'nutrition/bls.json'));
+const BLS_PATH = `assets/bls-${createHash('sha256').update(BLS).digest('hex').slice(0, 10)}.json`;
 
 const options = {
   entryPoints: {
@@ -30,7 +32,7 @@ const options = {
     login: join(root, 'src/login.ts'),
     style: join(root, 'src/styles.css'),
   },
-  define: { __PREVIEW__: PREVIEW ? 'true' : 'false', __SAMPLE__: JSON.stringify(PREVIEW || SERVE ? SAMPLE : '') },
+  define: { __PREVIEW__: PREVIEW ? 'true' : 'false', __SAMPLE__: JSON.stringify(PREVIEW || SERVE ? SAMPLE : ''), __BLS__: JSON.stringify(BLS_PATH) },
   bundle: true,
   minify: true,
   format: 'iife',
@@ -52,6 +54,7 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g
 function emit(result) {
   rmSync(dist, { recursive: true, force: true });
   cpSync(join(root, 'public'), dist, { recursive: true });
+  write(join(dist, BLS_PATH), BLS);
   const assets = {};
   const contents = {};
   for (const file of result.outputFiles) {
@@ -117,7 +120,7 @@ ${head(loginCss, '/icon.svg')}
 `,
   );
   write(join(dist, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
-  const precache = ['./', assets.app, assets.style, 'manifest.webmanifest', 'icon.svg', 'icon-192.png'];
+  const precache = ['./', assets.app, assets.style, BLS_PATH, 'manifest.webmanifest', 'icon.svg', 'icon-192.png'];
   delete assets.login;
   const version = createHash('sha256').update(precache.join('|')).digest('hex').slice(0, 10);
   write(join(dist, 'sw.js'), readFileSync(join(root, 'src/sw.js'), 'utf8').replace('__VERSION__', version).replace('__FILES__', JSON.stringify(precache)));

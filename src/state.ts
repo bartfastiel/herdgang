@@ -1,7 +1,8 @@
 // Cookbook data in memory, derived views (recipe with its versions and feedback) and all changes (mirrored to IndexedDB).
 import { loadAll, newId, put, remove, type DataSet } from './data/store.ts';
-import type { Comment, RecipeRec, Revision } from './data/types.ts';
+import type { Comment, FoodChoice, RecipeRec, Revision } from './data/types.ts';
 import { parse, type Parsed } from './recipe/format.ts';
+import { foodKey } from './recipe/nutrition.ts';
 import { author } from './sync.ts';
 
 export interface Entry {
@@ -13,7 +14,7 @@ export interface Entry {
   title: string;
 }
 
-let data: DataSet = { recipes: [], revisions: [], comments: [] };
+let data: DataSet = { recipes: [], revisions: [], comments: [], foods: [] };
 let list: Entry[] = [];
 const parsedCache = new Map<string, Parsed>();
 
@@ -100,6 +101,24 @@ export async function deleteComment(c: Comment): Promise<void> {
 
 export async function deleteRecipe(e: Entry): Promise<void> {
   await remove('recipes', e.recipe.id);
+  await reload();
+}
+
+/** foods chosen by hand in this cookbook: folded ingredient name → code ('' = not counted) */
+export function foodChoices(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const f of data.foods) out[f.id] = f.code;
+  return out;
+}
+
+/** code '' = do not count this ingredient, null = back to the automatic choice */
+export async function chooseFood(name: string, code: string | null): Promise<void> {
+  const id = foodKey(name);
+  if (code === null) await remove('foods', id);
+  else {
+    const f: FoodChoice = { id, name, code, author: author(), created: Date.now() };
+    await put([{ store: 'foods', value: f }]);
+  }
   await reload();
 }
 

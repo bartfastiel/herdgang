@@ -89,6 +89,19 @@ test('cooking with a recipe: amounts, info, timers, feedback, versions, PDF, inv
   await expect(page.locator('.shop').first()).toContainText('Weizenmehl Type 405');
   await expect(page.locator('.shop').first()).toContainText('Schritt 1');
 
+  // nutrition facts: a short note at the top, the table under the list, where the values come from
+  await expect(page.locator('.facts button.kcal')).toHaveText('≈ 200 kcal pro Stück');
+  await expect(page.locator('#naehrwerte .facts-table tbody tr').first()).toContainText('200 kcal');
+  await page.getByText('Woher die Werte kommen').click();
+  await expect(page.locator('.src', { hasText: 'Butter' })).toContainText('Süßrahmbutter');
+  // an editor counts an ingredient as a different food, for the whole cookbook
+  await page.locator('.src', { hasText: 'Butter' }).getByRole('button', { name: 'ändern' }).click();
+  await page.locator('.picker input').fill('Butter gesalzen');
+  await page.locator('.pick-list button').first().click();
+  await expect(page.locator('.src', { hasText: 'Butter' })).toContainText('Butter gesalzen');
+  await expect(page.locator('.src', { hasText: 'Butter' })).toContainText('von Hand');
+  await noOverflow(page);
+
   // feedback with name, edit, delete
   await page.getByRole('tab', { name: 'Rückmeldungen' }).click();
   await page.getByRole('textbox').fill('Teig etwas zu dick – nächstes Mal 20 g mehr Milch.');
@@ -140,6 +153,12 @@ test('readers comment but do not edit; the command line sees their feedback', as
   await page.getByRole('link', { name: /Pfannkuchen/ }).click();
   await expect(page.locator('.facts')).toContainText('Version 2');
   await expect(page.getByRole('link', { name: '✎ Bearbeiten' })).toHaveCount(0);
+  // readers see the nutrition facts and the food Daniel chose, but cannot change it
+  await page.getByRole('tab', { name: 'Zutaten' }).click();
+  await page.getByText('Woher die Werte kommen').click();
+  await expect(page.locator('.src', { hasText: 'Butter' })).toContainText('Butter gesalzen');
+  await expect(page.locator('#naehrwerte').getByRole('button', { name: 'ändern' })).toHaveCount(0);
+  expect(cli('nutrition', 'Pfannkuchen (Beispiel)', '--cookbook', 'Testküche')).toMatch(/Butter\s+10 g\s+chosen Q6A4000 Butter gesalzen/);
   await page.getByRole('tab', { name: /Rückmeldungen/ }).click();
   await page.getByRole('textbox').fill('Lecker!');
   await page.getByRole('button', { name: 'Speichern' }).click();

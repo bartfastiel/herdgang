@@ -24,6 +24,10 @@ thought through for the kitchen – not an endless library.
   stiff“). Older versions stay readable; „differences“ shows a line diff and a summary of changed amounts.
 - **Feedback per version** with name and time, editable and deletable by its author. „Copy for AI“ puts the recipe,
   its history and all feedback on the clipboard – the input for writing the next version.
+- **Nutrition facts** per portion (or piece, or 100 g where the finished weight is known) and in total, computed from
+  the ingredients with the German food composition database (see below). Each ingredient shows the food it counts as;
+  people who may edit can choose a different one, which then applies to the whole cookbook. Salt for the cooking water
+  and fat for deep-frying count only in part, spices and flavourings not at all, optional variants neither.
 
 ## Accounts and cookbooks
 
@@ -44,6 +48,14 @@ Therefore records are **not end-to-end encrypted**; instead the server keeps as 
 - TLS only, `noindex`, strict CSP without `unsafe-inline`, no trackers, no third-party requests from the app;
 - push messages for timers are end-to-end encrypted to the device as the Web Push standard requires (RFC 8291).
 
+## Nutrition data
+
+The values come from the Bundeslebensmittelschlüssel (BLS) 4.0 – Max Rubner-Institut (2025): Bundeslebensmittelschlüssel
+(BLS), Version 4.0 – Deutsche Nährstoffdatenbank. Karlsruhe. DOI 10.25826/Data20251217-134202-0 – published as open
+data under Creative Commons Attribution 4.0 International (CC BY 4.0). `nutrition/bls.json` is an extract (code, name
+and eight values per 100 g, rounded); `nutrition/README.md` says how it is made. The app names the source wherever it
+shows values. Which food an ingredient counts as is this project's own mapping (`src/recipe/foods.ts`).
+
 ## Recipe format
 
 Recipes are stored as plain text (German keywords, as the app's users are German speakers). See
@@ -56,9 +68,10 @@ in the database of each cookbook.
 npm install
 npm run dev        # http://localhost:5173/ (local mode without backend, sample recipe available)
 npm run typecheck
-npm test           # unit tests: recipe format, units, diff, PDF, QR codes, backend incl. passkeys, roles, push crypto
+npm test           # unit tests: format, units, nutrition, diff, PDF, QR codes, backend (passkeys, roles, push crypto)
 npm run e2e        # build + Playwright in Pixel 6 Pro format with a virtual passkey
 node tools/check-recipes.ts --show <file.txt>   # check a recipe file and preview its two-column layout
+node tools/bls.ts <BLS_4_0_Daten_2025_DE.xlsx>  # rebuild nutrition/bls.json from the published spreadsheet
 ```
 
 Vanilla TypeScript without runtime dependencies or frameworks, bundled with esbuild. The PDF writer, QR code generator,
@@ -69,9 +82,11 @@ WebAuthn verification, CBOR decoder and Web Push encryption are small, self-writ
 server/            app.ts (HTTP, sign-in, sessions, sync, invites, timers), cookbook.ts (recipes for the CLI), push.ts,
                    webauthn.ts, cbor.ts, db.ts, cli.ts, main.ts
 src/recipe/        format.ts (parser), units.ts (grams, kitchen measures, scaling), compare.ts (diff, ingredient list),
-                   context.ts (text for writing the next version)
+                   context.ts (text for writing the next version), nutrition.ts (nutrition facts), foods.ts
+                   (ingredient → food)
+nutrition/         bls.json (extract of the food composition database, loaded by the app on demand)
 src/pdf/           pdf.ts (minimal PDF writer), recipe-pdf.ts, invite-pdf.ts, metrics.ts (font widths)
-src/views/         home, recipe (steps, ingredients, feedback, versions), editor, settings, help
+src/views/         home, recipe (steps, ingredients, feedback, versions), nutrition, editor, settings, help
 src/timers.ts      kitchen timers, alarm, push registration
 src/qr.ts          QR code generator for invite links
 ```
@@ -85,6 +100,7 @@ through (`forward_auth` against `/api/auth/check`). Administration happens with 
 node /srv/server/cli.mjs cookbook-create --name "Our cookbook"
 node /srv/server/cli.mjs invite --cookbook "Our cookbook" --name Alex --role owner
 node /srv/server/cli.mjs recipes | show <recipe> | context <recipe> | commit <recipe> --message "…" < recipe.txt
+node /srv/server/cli.mjs nutrition <recipe> | bls <words> | food "<ingredient>" <code|none|auto>
 ```
 
 ## License

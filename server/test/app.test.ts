@@ -153,8 +153,12 @@ test('cookbooks are separate, roles decide who may write what', async () => {
   const changed = rev('v1', 'r1', '# Test\n\nAnders.\n', { id: owner.id, name: 'Mama' });
   changed.updated = clock;
   assert.equal((await call('/api/records?cookbook=' + BOOK, { records: [changed] }, owner.cookie)).data.rejected, 1);
+  // which food an ingredient counts as: editors decide, readers do not
+  const food = { store: 'foods', id: 'butter', updated: clock, data: { id: 'butter', name: 'Butter', code: 'Q630000', author: { id: kid.id, name: 'Ben' }, created: clock } };
+  assert.equal((await call('/api/records?cookbook=' + BOOK, { records: [food] }, kid.cookie)).data.rejected, 1);
+  assert.equal((await call('/api/records?cookbook=' + BOOK, { records: [food] }, owner.cookie)).data.accepted, 1);
   const all = await call('/api/records?cookbook=' + BOOK, undefined, kid.cookie);
-  assert.deepEqual(all.data.records.map((r: { id: string; deleted: boolean }) => r.id + (r.deleted ? '†' : '')).sort(), ['c1†', 'r1', 'v1']);
+  assert.deepEqual(all.data.records.map((r: { id: string; deleted: boolean }) => r.id + (r.deleted ? '†' : '')).sort(), ['butter', 'c1†', 'r1', 'v1']);
 });
 
 test('invites from the app: owners only; joining another cookbook keeps the account', async () => {

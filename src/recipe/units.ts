@@ -10,6 +10,8 @@ interface Known {
   density?: number;
   /** g per piece (for counts without "= … g") */
   piece?: number;
+  /** g per unit for units that depend on the ingredient (a bunch of parsley, a leaf of basil) */
+  per?: Record<string, number>;
   /** singular/plural of the noun, for counts */
   one?: string;
   many?: string;
@@ -19,7 +21,11 @@ interface Known {
 const KNOWN: Known[] = [
   { re: /^eigelb/i, piece: 18, one: 'Eigelb', many: 'Eigelb' },
   { re: /^eiweiß|^eiklar/i, piece: 32, one: 'Eiweiß', many: 'Eiweiß' },
-  { re: /^eier?\b/i, piece: 50, one: 'Ei', many: 'Eier' },
+  // edible part without the shell, by size class
+  { re: /^ei(er)?\b.*\bgröße s\b/i, piece: 42, one: 'Ei', many: 'Eier' },
+  { re: /^ei(er)?\b.*\bgröße l\b/i, piece: 58, one: 'Ei', many: 'Eier' },
+  { re: /^ei(er)?\b.*\bgröße xl\b/i, piece: 65, one: 'Ei', many: 'Eier' },
+  { re: /^ei(er)?\b/i, piece: 50, one: 'Ei', many: 'Eier' },
   { re: /vanill\w*zucker/i, piece: 8, density: 0.85 },
   { re: /backpulver/i, piece: 15, density: 0.75 },
   { re: /natron/i, density: 0.9 },
@@ -38,6 +44,16 @@ const KNOWN: Known[] = [
   { re: /^apfel|^äpfel/i, piece: 150, one: 'Apfel', many: 'Äpfel' },
   { re: /^semmel|^brötchen/i, piece: 50 },
   { re: /lorbeer/i, piece: 0.2 },
+  { re: /^brezen?$/i, piece: 85, one: 'Breze', many: 'Brezen' },
+  { re: /oblaten/i, piece: 0.25 },
+  { re: /sahnefestiger|sahnesteif/i, piece: 8 },
+  { re: /^schalotte/i, piece: 30, one: 'Schalotte', many: 'Schalotten' },
+  { re: /camembert/i, piece: 125 },
+  { re: /schnitzel/i, piece: 150 },
+  { re: /^doraden?\b/i, piece: 400 },
+  { re: /basilikum/i, per: { Blatt: 0.5 } },
+  { re: /petersilie/i, per: { Bund: 40 } },
+  { re: /^schnittlauch$/i, per: { Bund: 30 } },
   { re: /^salz|meersalz|fleur de sel/i, density: 1.2 },
   { re: /puderzucker/i, density: 0.55 },
   { re: /zucker/i, density: 0.85 },
@@ -102,6 +118,7 @@ export function gramsOf(ing: Ingredient): number | undefined {
   if (k === 'volume') return info && info.density ? n * VOLUME_ML[ing.unit as string] * info.density : undefined;
   if (k === 'count') {
     if (ing.unit && COUNT_G[ing.unit] !== undefined) return n * COUNT_G[ing.unit];
+    if (ing.unit && info && info.per && info.per[ing.unit] !== undefined) return n * info.per[ing.unit];
     if (ing.unit === 'Päckchen' || ing.unit === 'Würfel' || ing.unit === 'Zehe' || !ing.unit || ing.unit === 'Stück') return info && info.piece ? n * info.piece : undefined;
   }
   return undefined;

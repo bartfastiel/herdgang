@@ -15,8 +15,8 @@ export const VOICE = process.env.HG_VOICE || 'de-DE-SeraphinaMultilingualNeural'
 
 // Was die Stimme falsch betont, bekommt hier eine Lautschrift; Untertitel zeigen den Originaltext.
 const SPOKEN: [RegExp, string][] = [
-  [/NAS/g, 'Nass'],
-  [/ZIP/g, 'Zip'],
+  [/\bNAS\b/g, 'Nass'],
+  [/\bZIP\b/g, 'Zip'],
 ]
 
 export const spoken = (text: string) => SPOKEN.reduce((t, [re, to]) => t.replace(re, to), text);

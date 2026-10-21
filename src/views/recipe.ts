@@ -1,6 +1,7 @@
-// One recipe: steps with their ingredients side by side („Ablauf“), the summed-up list („Zutaten“), feedback per
-// version („Rückmeldungen“) and the history („Versionen“). Amounts follow the chosen yield; tapping an amount switches
-// its unit (g → ml → EL …); tapping a step number marks it done.
+// One recipe: steps with their ingredients side by side („Ablauf“), the summed-up list with nutrition facts
+// („Zutaten“), feedback per version („Rückmeldungen“) and the history („Versionen“). Amounts follow the chosen yield;
+// tapping an amount switches its unit (g → ml → EL …); tapping a step number marks it done.
+import { loadFoods } from '../foods.ts';
 import { link, replaceQuery } from '../nav.ts';
 import { recipePdf } from '../pdf/recipe-pdf.ts';
 import { changedAmounts, diffLines, shoppingList } from '../recipe/compare.ts';
@@ -12,6 +13,7 @@ import { canEdit, currentMode } from '../sync.ts';
 import { byKey, cancel, extend, onTimers, remaining, running, start, type TimerDef } from '../timers.ts';
 import { add, clear, confirmButton, fmtDateTime, h, toast } from '../ui/dom.ts';
 import { holdScreen, screenLockSupported } from '../ui/wakelock.ts';
+import { kcalButton, nutritionSection, pdfNutrition } from './nutrition.ts';
 import type { Comment, Revision } from '../data/types.ts';
 
 type Tab = 'steps' | 'list' | 'feedback' | 'versions';
@@ -80,11 +82,20 @@ export function recipeView(root: HTMLElement, id: string, params: URLSearchParam
       h('div', { class: 'notice old-version' }, `Du siehst Version ${version} von ${e.revisions.length} (${fmtDateTime(rev.created)}). `, h('a', { href: link('recipe', e.recipe.id) }, 'Zur aktuellen Version')),
     );
   if (p.errors.length) root.appendChild(h('div', { class: 'notice' }, 'Diese Version enthält Formatfehler – einiges wird evtl. unvollständig angezeigt.'));
+  const kcal = kcalButton(r, factor, () => {
+    openTab('list');
+    // after the section has drawn its table (it waits for the same promise)
+    void loadFoods().then(() => {
+      const el = document.getElementById('naehrwerte');
+      if (el) el.scrollIntoView({ block: 'start' });
+    });
+  });
   root.appendChild(
     h('div', { class: 'facts' },
       r.time ? h('span', null, '⏱ ' + r.time) : null,
       h('span', { class: 'badge' }, 'Version ' + version),
-      e.comments.length ? h('span', { class: 'badge warn' }, '💬 ' + e.comments.length) : null),
+      e.comments.length ? h('span', { class: 'badge warn' }, '💬 ' + e.comments.length) : null,
+      kcal.el),
   );
 
   // ---- toolbar ----
@@ -103,6 +114,7 @@ export function recipeView(root: HTMLElement, id: string, params: URLSearchParam
     saveUi(rev.id, ui);
     showYield();
     renderBody();
+    kcal.update();
   };
   const screenBtn = h('button', { type: 'button', 'aria-pressed': 'false', title: 'Bildschirm beim Kochen anlassen' });
   const setScreen = (on: boolean) => {
@@ -137,6 +149,12 @@ export function recipeView(root: HTMLElement, id: string, params: URLSearchParam
   // ---- tabs ----
   const tabBar = h('div', { class: 'tabs', role: 'tablist' });
   const body = h('div', { role: 'tabpanel' });
+  const openTab = (t: Tab) => {
+    tab = t;
+    replaceQuery({ tab: t === 'steps' ? undefined : t });
+    renderTabs();
+    renderBody();
+  };
   const renderTabs = () => {
     clear(tabBar);
     for (const [t, label] of TABS) {
@@ -147,10 +165,7 @@ export function recipeView(root: HTMLElement, id: string, params: URLSearchParam
           role: 'tab',
           'aria-selected': t === tab ? 'true' : 'false',
           onclick: () => {
-            tab = t;
-            replaceQuery({ tab: t === 'steps' ? undefined : t });
-            renderTabs();
-            renderBody();
+            openTab(t);
             window.scrollTo(0, Math.min(window.scrollY, (head.offsetTop || 0) + head.offsetHeight));
           },
         }, label + (count ? ` (${count})` : '')),
@@ -385,6 +400,7 @@ function listTab(root: HTMLElement, r: Recipe, rev: Revision, ui: Ui, factor: nu
     root.appendChild(
       h('p', null, h('button', { type: 'button', class: 'link', onclick: () => ((ui.got = []), saveUi(rev.id, ui), clear(root), listTab(root, r, rev, ui, factor)) }, 'Alle Haken entfernen')),
     );
+  root.appendChild(nutritionSection(r, factor));
 }
 
 // ---- Rückmeldungen ---------------------------------------------------------------------------------------------------
@@ -538,7 +554,7 @@ function downloadPdf(e: Entry, rev: Revision, r: Recipe, factor: number, ui: Ui,
   const choicesByLine: Record<number, Choice> = {};
   for (const k of Object.keys(ui.units)) choicesByLine[Number(k)] = ui.units[k];
   const yieldText = r.yield ? (factor !== 1 ? `${fmtFraction(r.yield.amount * factor, 0.25)} ${r.yield.unit} (umgerechnet)` : r.yieldText) : r.yieldText;
-  const bytes = recipePdf(r, { factor, choices: choicesByLine, version, date: rev.created, yieldText });
+  const bytes = recipePdf(r, { factor, choices: choicesByLine, version, date: rev.created, yieldText, nutrition: pdfNutrition(r, factor) });
   const name = (r.title || 'Rezept').replace(/[^\p{L}\p{N} _-]+/gu, '').trim().replace(/\s+/g, '-') + '.pdf';
   const file = new File([bytes as BlobPart], name, { type: 'application/pdf' });
   const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
