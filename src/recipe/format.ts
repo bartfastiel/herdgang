@@ -218,7 +218,13 @@ export function parseIngredient(raw: string, line: number, problems: Problem[]):
     }
     if (!isFinite(ing.amount.min) || (ing.amount.max !== undefined && !isFinite(ing.amount.max))) problems.push({ line, message: 'Menge nicht lesbar: ' + raw });
   }
-  const comma = body.indexOf(',');
+  // the note starts at the first comma outside brackets („Teig (Kühlregal, ausgerollt), kalt“)
+  let comma = -1;
+  for (let i = 0, depth = 0; i < body.length && comma < 0; i++) {
+    if (body[i] === '(') depth++;
+    else if (body[i] === ')') depth = Math.max(0, depth - 1);
+    else if (body[i] === ',' && !depth) comma = i;
+  }
   if (comma >= 0) {
     ing.name = body.slice(0, comma).trim();
     const note = body.slice(comma + 1).trim();
