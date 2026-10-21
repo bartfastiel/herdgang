@@ -5,7 +5,7 @@ npm run --silent typecheck
 npm test --silent
 files=$(git diff --cached --name-only --diff-filter=ACM | grep -vE '^package-lock\.json$' || true)
 [ -z "$files" ] && exit 0
-if echo "$files" | xargs grep -nE 'https?://' -- 2>/dev/null | grep -vE 'https?://(localhost|127\.0\.0\.1|local[/'"'"']|[a-z.-]*example(\.org|\.com)?[/'"'"']|www\.w3\.org/2000/svg|fcm\.googleapis\.com)'; then
+if echo "$files" | xargs grep -nE 'https?://' -- 2>/dev/null | grep -vE 'https?://([$<]|localhost|127\.0\.0\.1|local[/'"'"']|([a-z0-9-]+\.)*example(\.org|\.com)?([^a-z0-9.]|$)|www\.w3\.org/2000/svg|fcm\.googleapis\.com)'; then
   echo "Links found above – the repository stays free of links." >&2
   exit 1
 fi
