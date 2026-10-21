@@ -1,0 +1,25 @@
+# Pfannkuchen (Beispiel)
+Untertitel: Beispielrezept für Tests und Vorschauen – zeigt alle Elemente des Formats
+Ergibt: 4 Stück
+Zeit: 10 min Arbeit, 30 min gesamt
+Schlagworte: Beispiel, Süß
+Geräte: Schüssel, Schneebesen, beschichtete Pfanne 24 cm
+Hinweis: Der Teig ruht 20 Minuten – solange die Füllung vorbereiten.
+
+## Teig
+
+- 125 g Weizenmehl Type 405
+- 1 Prise Salz
+- 250 g Milch
+Mehl und Salz mischen, die Milch nach und nach mit dem Schneebesen [einrühren]{Erst wenig Milch: So entsteht ein dicker, glatter Brei, in dem sich keine Klümpchen halten.}.
+
+- 2 Eier (Größe M) = 100 g
+Die Eier unterrühren. Den Teig zugedeckt ruhen lassen.{Das Mehl quillt, der Teig wird bindiger und reißt in der Pfanne nicht.}
+Timer: 20 min – Teig ist fertig: Pfanne heiß werden lassen
+
+## Backen
+
+- 10 g Butter
+Butter in der Pfanne bei mittlerer Hitze schmelzen. Eine Kelle Teig hineingeben, durch Schwenken verteilen.
+! Den Griff der Pfanne nach innen drehen – heißes Fett.
+Timer: 2 min – Pfannkuchen wenden

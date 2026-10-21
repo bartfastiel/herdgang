@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#3f6b3a"/>
+  <!-- steam rising as a path of steps -->
+  <path d="M206 168c-22-24 22-44 0-70M256 160c-22-26 22-48 0-76M306 168c-22-24 22-44 0-70" fill="none" stroke="#e9f1e2" stroke-width="18" stroke-linecap="round"/>
+  <!-- pot -->
+  <rect x="112" y="214" width="288" height="34" rx="17" fill="#fffdf9"/>
+  <path d="M136 262h240v86c0 40-32 72-72 72h-96c-40 0-72-32-72-72z" fill="#fffdf9"/>
+  <rect x="84" y="276" width="56" height="26" rx="13" fill="#fffdf9"/>
+  <rect x="372" y="276" width="56" height="26" rx="13" fill="#fffdf9"/>
+  <!-- three step dots -->
+  <circle cx="206" cy="336" r="15" fill="#b03a24"/>
+  <circle cx="256" cy="336" r="15" fill="#3f6b3a"/>
+  <circle cx="306" cy="336" r="15" fill="#3f6b3a" opacity="0.45"/>
+</svg>
