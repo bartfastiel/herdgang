@@ -30,7 +30,7 @@ export function settingsView(root: HTMLElement): void {
     root.appendChild(
       h('section', { class: 'card' },
         h('label', { for: 'name' }, 'Dein Name'),
-        h('p', { class: 'muted small' }, 'Steht bei deinen Rückmeldungen und Versionen.'),
+        h('p', { class: 'muted small' }, 'Steht bei deinem Feedback und deinen Versionen.'),
         h('div', { class: 'row' }, h('div', { class: 'grow' }, name), h('button', { type: 'button', onclick: () => void rename(name.value.trim()).then((ok) => toast(ok ? 'Gespeichert.' : 'Ging nicht – offline?')) }, 'Speichern'))),
     );
     const books = h('section', { class: 'card' }, h('h2', null, 'Kochbuch'));

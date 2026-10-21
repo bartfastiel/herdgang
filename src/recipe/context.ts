@@ -10,7 +10,7 @@ export function context(e: { title: string; recipe: { id: string }; revisions: R
   out.push(`Rezept „${e.title}“ (id ${e.recipe.id}), aktuell Version ${n}.`, '');
   out.push('## Versionen');
   e.revisions.forEach((r, i) => out.push(`- Version ${i + 1} · ${fmt(r.created)} · ${r.author.name}: ${r.message}`));
-  out.push('', '## Rückmeldungen');
+  out.push('', '## Feedback');
   if (!e.comments.length) out.push('(keine)');
   for (const c of e.comments) {
     const v = e.revisions.findIndex((r) => r.id === c.revisionId) + 1;

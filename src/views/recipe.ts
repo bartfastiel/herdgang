@@ -1,5 +1,5 @@
 // One recipe: steps with their ingredients side by side („Ablauf“), the summed-up list with nutrition facts
-// („Zutaten“), feedback per version („Rückmeldungen“) and the history („Versionen“). Amounts follow the chosen yield;
+// („Zutaten“), feedback per version („Feedback“) and the history („Versionen“). Amounts follow the chosen yield;
 // tapping an amount switches its unit (g → ml → EL …); tapping a step number marks it done.
 import { loadFoods } from '../foods.ts';
 import { link, replaceQuery } from '../nav.ts';
@@ -20,7 +20,7 @@ type Tab = 'steps' | 'list' | 'feedback' | 'versions';
 const TABS: [Tab, string][] = [
   ['steps', 'Ablauf'],
   ['list', 'Zutaten'],
-  ['feedback', 'Rückmeldungen'],
+  ['feedback', 'Feedback'],
   ['versions', 'Versionen'],
 ];
 
@@ -403,7 +403,7 @@ function listTab(root: HTMLElement, r: Recipe, rev: Revision, ui: Ui, factor: nu
   root.appendChild(nutritionSection(r, factor));
 }
 
-// ---- Rückmeldungen ---------------------------------------------------------------------------------------------------
+// ---- Feedback --------------------------------------------------------------------------------------------------------
 
 function commentCard(e: Entry, c: Comment, after: () => void): HTMLElement {
   const v = versionOf(e, c.revisionId);
@@ -421,7 +421,7 @@ function commentCard(e: Entry, c: Comment, after: () => void): HTMLElement {
         );
       return;
     }
-    const ta = h('textarea', { 'aria-label': 'Rückmeldung bearbeiten' }) as HTMLTextAreaElement;
+    const ta = h('textarea', { 'aria-label': 'Feedback bearbeiten' }) as HTMLTextAreaElement;
     ta.value = c.text;
     add(card, ta, h('div', { class: 'row' },
       h('button', { type: 'button', class: 'primary', onclick: () => ta.value.trim() && void editComment(c, ta.value.trim()).then(after) }, 'Speichern'),
@@ -441,18 +441,18 @@ function feedbackTab(root: HTMLElement, e: Entry, rev: Revision, version: number
       const text = ta.value.trim();
       if (!text) return void ta.focus();
       void addComment(e, rev.id, text).then(() => {
-        toast('Rückmeldung gespeichert.');
+        toast('Feedback gespeichert.');
         after();
       });
     },
   }, 'Speichern');
   root.appendChild(
     h('section', { class: 'card' },
-      h('label', { for: 'fb' }, `Rückmeldung zu Version ${version}`),
+      h('label', { for: 'fb' }, `Feedback zu Version ${version}`),
       ta,
       h('div', { class: 'row' }, save, h('span', { class: 'muted small' }, currentMode() === 'server' ? 'wird mit deinem Namen gespeichert' : 'nur auf diesem Gerät'))),
   );
-  if (!e.comments.length) root.appendChild(h('p', { class: 'muted' }, 'Noch keine Rückmeldungen. Nach dem Kochen kurz notieren, was beim nächsten Mal anders sein soll – daraus entsteht die nächste Version.'));
+  if (!e.comments.length) root.appendChild(h('p', { class: 'muted' }, 'Noch kein Feedback. Nach dem Kochen kurz notieren, was beim nächsten Mal anders sein soll – daraus entsteht die nächste Version.'));
   const byVersion = e.revisions.slice().reverse();
   for (const r of byVersion) {
     const list = e.comments.filter((c) => c.revisionId === r.id).reverse();
@@ -468,12 +468,12 @@ function feedbackTab(root: HTMLElement, e: Entry, rev: Revision, version: number
         onclick: () => {
           const text = context(e);
           navigator.clipboard.writeText(text).then(
-            () => toast('Rezept, Versionen und Rückmeldungen kopiert – z. B. für eine KI, die die nächste Version schreibt.'),
+            () => toast('Rezept, Versionen und Feedback kopiert – z. B. für eine KI, die die nächste Version schreibt.'),
             () => toast('Kopieren ging nicht.'),
           );
         },
       }, '📋 Für KI kopieren'),
-      'Rezept, Verlauf und alle Rückmeldungen als Text.'),
+      'Rezept, Verlauf und alles Feedback als Text.'),
   );
 }
 
@@ -543,7 +543,7 @@ function versionsTab(root: HTMLElement, e: Entry, viewing: Revision): void {
     root.appendChild(
       h('section', { class: 'card' },
         h('h3', null, 'Rezept löschen'),
-        h('p', { class: 'muted small' }, 'Entfernt das Rezept mit allen Versionen und Rückmeldungen aus dem Kochbuch.'),
+        h('p', { class: 'muted small' }, 'Entfernt das Rezept mit allen Versionen und allem Feedback aus dem Kochbuch.'),
         confirmButton('Rezept löschen', 'Wirklich löschen?', () => void deleteRecipe(e).then(() => (location.hash = '#/')))),
     );
 }
