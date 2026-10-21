@@ -109,7 +109,7 @@ try {
     console.log('Backup written: ' + args[0]);
   } else if (cmd === 'recipes') {
     const cb = cookbookId(db, opt('cookbook'));
-    for (const e of entries(db, cb)) console.log(`${e.recipe.id}  v${e.revisions.length}  ${String(e.comments.length).padStart(2)} Rückm.  ${e.title}`);
+    for (const e of entries(db, cb)) console.log(`${e.recipe.id}  v${e.revisions.length}  ${String(e.comments.length).padStart(2)} Feedback  ${e.title}`);
   } else if (cmd === 'show') {
     const e = find(db, cookbookId(db, opt('cookbook')), positional()[0] || '');
     const v = Number(opt('version') || e.revisions.length);

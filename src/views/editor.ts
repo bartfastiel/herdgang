@@ -54,7 +54,7 @@ export function editorView(root: HTMLElement, id: string): () => void {
     if (feedback.length)
       root.appendChild(
         h('details', { class: 'card', open: true },
-          h('summary', null, `Rückmeldungen zu Version ${e.revisions.length} (${feedback.length})`),
+          h('summary', null, `Feedback zu Version ${e.revisions.length} (${feedback.length})`),
           feedback.map((c) => h('p', { class: 'small' }, h('b', null, c.author.name + ': '), c.text, h('span', { class: 'muted' }, ' · ' + fmtDateTime(c.created))))),
       );
   }

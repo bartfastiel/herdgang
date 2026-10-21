@@ -12,7 +12,7 @@ thought through for the kitchen – not an endless library.
 - **Strictly chronological.** No „into the preheated oven“ at the end: preheating appears exactly where you have to
   switch the oven on. Waiting times are used („while the dough rests: …“).
 - **An „i“ where it matters**: tapping a marked word explains *why* it matters right here in this recipe (why sift the
-  flour, why cold butter, why rest the dough). Hover shows it on desktop.
+  flour, why cold butter, why rest the dough). A second tap closes it again.
 - **Grams by default.** Tap an amount to see it in ml, tablespoons or teaspoons. Countable things (eggs, sachets,
   cloves) are shown as a count, grams on request.
 - **Scaling**: change the yield and every amount follows; fractional eggs show their weight on tap.

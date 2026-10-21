@@ -192,19 +192,19 @@ export const SCENES: Scene[] = [
     ],
   },
   {
-    kicker: 'Rückmeldung',
+    kicker: 'Feedback',
     heading: 'Was nächstes Mal besser wird',
     enter: async (a) => {
       await a.paper(null);
       await openRecipe(a, 'Brownies');
     },
     steps: [
-      { say: 'Nach dem Essen schreibt man kurz auf, was beim nächsten Mal anders sein soll. Mit Namen und Uhrzeit, zu genau dieser Version.', bullet: 'Rückmeldung <b>je Version</b>', act: async (a) => {
-        await a.tap(a.tab(/Rückmeldungen/));
+      { say: 'Nach dem Essen schreibt man kurz auf, was beim nächsten Mal anders sein soll. Mit Namen und Uhrzeit, zu genau dieser Version.', bullet: 'Feedback <b>je Version</b>', act: async (a) => {
+        await a.tap(a.tab(/Feedback/));
         await a.type(a.frame.locator('#fb'), 'Etwas zu süß – nächstes Mal 260 g Zucker statt 300 g.', 45);
         await a.tap(a.button('Speichern'));
       } },
-      { say: 'Rückmeldungen lassen sich jederzeit bearbeiten oder löschen.', act: async (a) => {
+      { say: 'Feedback lässt sich jederzeit bearbeiten oder löschen.', act: async (a) => {
         await a.ring(a.frame.locator('.comment').first());
       } },
     ],
@@ -213,7 +213,7 @@ export const SCENES: Scene[] = [
     kicker: 'Versionen',
     heading: 'Jede Änderung eine neue Version',
     steps: [
-      { say: 'Daraus entsteht die nächste Version. Beim Bearbeiten stehen die Rückmeldungen gleich oben.', bullet: 'Bearbeiten mit <b>Rückmeldungen</b>', act: async (a) => {
+      { say: 'Daraus entsteht die nächste Version. Beim Bearbeiten steht das Feedback gleich oben.', bullet: 'Bearbeiten mit <b>Feedback</b>', act: async (a) => {
         await a.ring(null);
         await a.scrollBy(-4000);
         await a.tap(a.link('✎ Bearbeiten'));
@@ -250,9 +250,9 @@ export const SCENES: Scene[] = [
         await a.ring(a.frame.locator('.version').first());
         await a.tap(a.frame.locator('.version').first().getByRole('button', { name: 'Unterschiede' }));
       } },
-      { say: 'Und mit einem Tipp gehen Rezept, Verlauf und alle Rückmeldungen an eine KI, die die nächste Version vorschlägt.', bullet: 'Für <b>KI</b> kopieren', act: async (a) => {
+      { say: 'Und mit einem Tipp gehen Rezept, Verlauf und alles Feedback an eine KI, die die nächste Version vorschlägt.', bullet: 'Für <b>KI</b> kopieren', act: async (a) => {
         await a.ring(null);
-        await a.tap(a.tab(/Rückmeldungen/));
+        await a.tap(a.tab(/Feedback/));
         await a.ring(a.button('📋 Für KI kopieren'));
       } },
     ],
@@ -272,7 +272,7 @@ export const SCENES: Scene[] = [
         await a.wait(0.6);
         await a.scrollTo(a.frame.locator('.qr'), 200);
       } },
-      { say: 'Wer lesen und Rückmeldungen schreiben darf, wer Rezepte bearbeitet und wer einlädt, legt man dabei fest. Jedes Kochbuch ist für sich.', bullet: 'Rollen je <b>Kochbuch</b>' },
+      { say: 'Wer lesen und Feedback schreiben darf, wer Rezepte bearbeitet und wer einlädt, legt man dabei fest. Jedes Kochbuch ist für sich.', bullet: 'Rollen je <b>Kochbuch</b>' },
       { say: 'Die Rezepte liegen auf unserem eigenen Server und auf jedem Gerät – auch ohne Netz in der Küche.', bullet: 'Eigener Server, <b>offline</b> nutzbar' },
     ],
   },

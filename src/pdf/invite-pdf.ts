@@ -26,7 +26,7 @@ export function invitePdf(inv: InviteInfo): Uint8Array {
   y += 44;
   pdf.text(M, y, 'Einladung für ' + inv.name, 'B', 30, INK);
   y += 28;
-  for (const l of wrap(`zum Kochbuch „${inv.cookbook}“ – Rezepte, die beim Kochen helfen: Zutaten direkt neben dem Schritt, Timer, Rückmeldungen und Versionen.`, 'R', 12.5, W)) {
+  for (const l of wrap(`zum Kochbuch „${inv.cookbook}“ – Rezepte, die beim Kochen helfen: Zutaten direkt neben dem Schritt, Timer, Feedback und Versionen.`, 'R', 12.5, W)) {
     pdf.text(M, y, l, 'R', 12.5, MUTED);
     y += 17;
   }

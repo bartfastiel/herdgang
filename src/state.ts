@@ -1,6 +1,6 @@
 // Cookbook data in memory, derived views (recipe with its versions and feedback) and all changes (mirrored to IndexedDB).
 import { loadAll, newId, put, remove, type DataSet } from './data/store.ts';
-import type { Comment, FoodChoice, RecipeRec, Revision } from './data/types.ts';
+import type { Comment, Cooked, FoodChoice, RecipeRec, Revision } from './data/types.ts';
 import { parse, type Parsed } from './recipe/format.ts';
 import { foodKey } from './recipe/nutrition.ts';
 import { author } from './sync.ts';
@@ -14,7 +14,7 @@ export interface Entry {
   title: string;
 }
 
-let data: DataSet = { recipes: [], revisions: [], comments: [], foods: [] };
+let data: DataSet = { recipes: [], revisions: [], comments: [], foods: [], cooked: [] };
 let list: Entry[] = [];
 const parsedCache = new Map<string, Parsed>();
 
@@ -120,6 +120,27 @@ export async function chooseFood(name: string, code: string | null): Promise<voi
     await put([{ store: 'foods', value: f }]);
   }
   await reload();
+}
+
+/** within this time, looking at a recipe again counts as the same time of making it */
+const SAME_COOKING = 6 * 60 * 60 * 1000;
+
+/** the current person made this recipe (once per recipe within six hours) */
+export async function markCooked(recipeId: string): Promise<void> {
+  const me = author();
+  const now = Date.now();
+  if (data.cooked.some((c) => c.recipeId === recipeId && c.author.id === me.id && now - c.created < SAME_COOKING)) return;
+  const c: Cooked = { id: newId(), recipeId, author: me, created: now };
+  await put([{ store: 'cooked', value: c }]);
+  await reload();
+}
+
+/** how often the current person made each recipe */
+export function cookedCounts(): Record<string, number> {
+  const me = author().id;
+  const out: Record<string, number> = {};
+  for (const c of data.cooked) if (c.author.id === me) out[c.recipeId] = (out[c.recipeId] || 0) + 1;
+  return out;
 }
 
 /** whether the current person may change this comment */

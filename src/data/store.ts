@@ -3,10 +3,10 @@
 // One database per cookbook (herdgang-<cookbook id>), so switching cookbooks never mixes data. Every change sets
 // `updated`; deleting leaves a tombstone ({id, deleted: true}) so other devices learn about it. Local mode (no server)
 // and previews (…/pr-<nr>/) get databases of their own and never sync.
-import type { Base, Comment, FoodChoice, RecipeRec, Revision } from './types.ts';
+import type { Base, Comment, Cooked, FoodChoice, RecipeRec, Revision } from './types.ts';
 
-export type StoreName = 'recipes' | 'revisions' | 'comments' | 'foods';
-export const STORES: StoreName[] = ['recipes', 'revisions', 'comments', 'foods'];
+export type StoreName = 'recipes' | 'revisions' | 'comments' | 'foods' | 'cooked';
+export const STORES: StoreName[] = ['recipes', 'revisions', 'comments', 'foods', 'cooked'];
 
 let name = 'herdgang-local';
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -37,7 +37,7 @@ function changed(): void {
 function open(): Promise<IDBDatabase> {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
-      const req = indexedDB.open(name, 2);
+      const req = indexedDB.open(name, 3);
       req.onupgradeneeded = () => {
         const db = req.result;
         for (const s of STORES) if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: 'id' });
@@ -126,14 +126,21 @@ export interface DataSet {
   revisions: Revision[];
   comments: Comment[];
   foods: FoodChoice[];
+  cooked: Cooked[];
 }
 
 export async function loadAll(): Promise<DataSet> {
   const db = await open();
   const tx = db.transaction(STORES, 'readonly');
   const get = <T extends Base>(store: StoreName) => request(tx.objectStore(store).getAll() as IDBRequest<T[]>).then((rows) => rows.filter((r) => !r.deleted));
-  const [recipes, revisions, comments, foods] = await Promise.all([get<RecipeRec>('recipes'), get<Revision>('revisions'), get<Comment>('comments'), get<FoodChoice>('foods')]);
-  return { recipes, revisions, comments, foods };
+  const [recipes, revisions, comments, foods, cooked] = await Promise.all([
+    get<RecipeRec>('recipes'),
+    get<Revision>('revisions'),
+    get<Comment>('comments'),
+    get<FoodChoice>('foods'),
+    get<Cooked>('cooked'),
+  ]);
+  return { recipes, revisions, comments, foods, cooked };
 }
 
 export const newId = (): string => {

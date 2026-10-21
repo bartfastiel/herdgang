@@ -41,6 +41,13 @@ export interface Comment extends Base {
   edited?: number;
 }
 
+/** a person made this recipe: its page was open for a while (src/cooked.ts) */
+export interface Cooked extends Base {
+  recipeId: string;
+  author: Author;
+  created: number;
+}
+
 /**
  * Which food of the nutrition table an ingredient stands for in this cookbook, chosen by hand
  * (src/recipe/nutrition.ts). id = folded ingredient name; code '' = not counted.

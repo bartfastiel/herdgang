@@ -34,7 +34,7 @@ const ids = Object.fromEntries(
     .split('\n')
     .filter(Boolean)
     .map((l) => {
-      const m = /^(\S+)\s+v\d+\s+\d+ Rückm\.\s+(.*)$/.exec(l);
+      const m = /^(\S+)\s+v\d+\s+\d+ Feedback\s+(.*)$/.exec(l);
       return m ? [m[2], m[1]] : ['', ''];
     }),
 );

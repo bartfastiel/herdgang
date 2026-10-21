@@ -56,9 +56,14 @@ test('cooking with a recipe: amounts, info, timers, feedback, versions, PDF, inv
   await expect(step1.locator('.ings')).toContainText('≈ 225 ml');
   await expect(page.locator('#s-2 .ings')).toContainText('2 Eier (Größe M)');
 
-  // the "i" explains why
-  await step1.getByRole('button', { name: 'einrühren – Erklärung zeigen' }).click();
+  // the "i" explains why: a click opens, a second click closes, the mouse alone never opens anything
+  const tip = step1.getByRole('button', { name: 'einrühren – Erklärung zeigen' });
+  await tip.hover();
+  await expect(step1.locator('.tipbox')).toHaveCount(0);
+  await tip.click();
   await expect(step1.locator('.tipbox')).toContainText('Erst wenig Milch');
+  await tip.click();
+  await expect(step1.locator('.tipbox')).toHaveCount(0);
 
   // scaling
   await page.getByRole('button', { name: 'mehr' }).click();
@@ -103,7 +108,7 @@ test('cooking with a recipe: amounts, info, timers, feedback, versions, PDF, inv
   await noOverflow(page);
 
   // feedback with name, edit, delete
-  await page.getByRole('tab', { name: 'Rückmeldungen' }).click();
+  await page.getByRole('tab', { name: 'Feedback' }).click();
   await page.getByRole('textbox').fill('Teig etwas zu dick – nächstes Mal 20 g mehr Milch.');
   await page.getByRole('button', { name: 'Speichern' }).click();
   await expect(page.locator('.comment')).toContainText('Daniel');
@@ -115,7 +120,7 @@ test('cooking with a recipe: amounts, info, timers, feedback, versions, PDF, inv
 
   // next version from the feedback
   await page.getByRole('link', { name: '✎ Bearbeiten' }).click();
-  await expect(page.getByText('Rückmeldungen zu Version 1 (1)')).toBeVisible();
+  await expect(page.getByText('Feedback zu Version 1 (1)')).toBeVisible();
   const ta = page.getByRole('textbox', { name: 'Rezepttext' });
   await ta.fill(SAMPLE.replace('- 250 g Milch', '- 270 g Milch'));
   await page.locator('#msg').fill('20 g mehr Milch, Teig war zu dick');
@@ -145,7 +150,7 @@ test('cooking with a recipe: amounts, info, timers, feedback, versions, PDF, inv
   await noOverflow(page);
   expect((page as Page & { errors: string[] }).errors).toEqual([]);
   // everything reached the server
-  await expect.poll(() => cli('recipes', '--cookbook', 'Testküche'), { timeout: 15000 }).toMatch(/v2\s+1 Rückm\./);
+  await expect.poll(() => cli('recipes', '--cookbook', 'Testküche'), { timeout: 15000 }).toMatch(/v2\s+1 Feedback/);
 });
 
 test('readers comment but do not edit; the command line sees their feedback', async ({ browser }) => {
@@ -159,10 +164,16 @@ test('readers comment but do not edit; the command line sees their feedback', as
   await expect(page.locator('.src', { hasText: 'Butter' })).toContainText('Butter gesalzen');
   await expect(page.locator('#naehrwerte').getByRole('button', { name: 'ändern' })).toHaveCount(0);
   expect(cli('nutrition', 'Pfannkuchen (Beispiel)', '--cookbook', 'Testküche')).toMatch(/Butter\s+10 g\s+chosen Q6A4000 Butter gesalzen/);
-  await page.getByRole('tab', { name: /Rückmeldungen/ }).click();
+  await page.getByRole('tab', { name: /Feedback/ }).click();
   await page.getByRole('textbox').fill('Lecker!');
   await page.getByRole('button', { name: 'Speichern' }).click();
   await expect(page.locator('.comment').filter({ hasText: 'Lecker!' })).toContainText('Lea');
+  // three minutes with the recipe open count as having made it; the start page shows it
+  await page.clock.runFor('03:05');
+  await page.getByRole('link', { name: 'Zurück' }).click();
+  await expect(page.locator('.item', { hasText: 'Pfannkuchen' })).toContainText('1× gemacht');
+  await page.getByRole('link', { name: /Pfannkuchen/ }).click();
+  await page.getByRole('tab', { name: /Feedback/ }).click();
   // the edited feedback of Daniel cannot be changed by Lea
   await expect(page.locator('.comment').filter({ hasText: 'Daniel' }).getByRole('button', { name: 'Bearbeiten' })).toHaveCount(0);
   await expect.poll(() => cli('context', 'Pfannkuchen (Beispiel)', '--cookbook', 'Testküche'), { timeout: 15000 }).toContain('Lea: Lecker!');
