@@ -1,0 +1,11 @@
+#!/bin/sh
+# Conventional Commits: type(scope)?: description – merge commits are exempt.
+first=$(sed -n '1p' "$1")
+case "$first" in
+  Merge*) exit 0 ;;
+esac
+if ! printf '%s\n' "$first" | grep -Eq '^(feat|fix|docs|test|refactor|chore|ci)(\([a-z0-9-]+\))?!?: .+'; then
+  echo "Commit message must follow Conventional Commits: feat|fix|docs|test|refactor|chore|ci(scope)?: description" >&2
+  echo "Got: $first" >&2
+  exit 1
+fi

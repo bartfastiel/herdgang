@@ -1,0 +1,157 @@
+# Deployment via SSH to the server. Caddy serves the app read-only and lets only signed-in sessions through; previews of
+# pull requests live next to it under their own path.
+#
+#   production  https://<HERDGANG_HOST>/                       ← dist/ (server: app/)
+#               backend (sign-in, sync, timers)                ← dist-server/ (server: server/; container *-herdgang-api-1)
+#   preview     https://<HERDGANG_HOST>/<HERDGANG_PREVIEW_PATH>/pr-<nr>/   ← dist/ per pull request
+#
+# The app uses relative paths only, so the same build runs at both addresses. Previews are built with PREVIEW=1: their own
+# local database, no sync – they never see or change real data, and they need a session like everything else.
+# Pull requests from forks get no secrets, so they are never deployed.
+#
+# Secrets: DEPLOY_HOST, DEPLOY_USER (default root), DEPLOY_SSH_KEY. Variables: HERDGANG_HOST, HERDGANG_PREVIEW_PATH.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+
+env:
+  SERVER_DIR: /mnt/frag-daniel/herdgang
+  CONTAINER: frag-daniel-herdgang-api-1
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prerequisites:
+    name: Prerequisites
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      PREVIEW_PATH: ${{ vars.HERDGANG_PREVIEW_PATH }}
+      APP_HOST: ${{ vars.HERDGANG_HOST }}
+    outputs:
+      production: ${{ steps.check.outputs.production }}
+      preview: ${{ steps.check.outputs.preview }}
+      preview_base: ${{ steps.check.outputs.preview_base }}
+    steps:
+      - id: check
+        run: |
+          production=false
+          preview=false
+          if [ -n "$DEPLOY_HOST" ] && [ -n "$APP_HOST" ]; then production=true; else echo "::notice::DEPLOY_HOST/HERDGANG_HOST missing – no deployment."; fi
+          if [ "$production" = true ] && [ -n "$PREVIEW_PATH" ]; then preview=true; else echo "::notice::no preview (HERDGANG_PREVIEW_PATH missing)."; fi
+          {
+            echo "production=$production"
+            echo "preview=$preview"
+            echo "preview_base=https://$APP_HOST/$PREVIEW_PATH"
+          } >> "$GITHUB_OUTPUT"
+
+  production:
+    name: Production
+    needs: prerequisites
+    if: needs.prerequisites.outputs.production == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'root' }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      APP_HOST: ${{ vars.HERDGANG_HOST }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: SSH key
+        run: .github/scripts/ssh-setup.sh
+      - name: Upload
+        run: |
+          .github/scripts/upload-dir.sh dist "$DEPLOY_USER@$DEPLOY_HOST" "$SERVER_DIR/app"
+          .github/scripts/upload-dir.sh dist-server "$DEPLOY_USER@$DEPLOY_HOST" "$SERVER_DIR/server"
+      - name: Restart backend
+        run: |
+          if ssh "$DEPLOY_USER@$DEPLOY_HOST" "docker restart $CONTAINER" >/dev/null 2>&1; then
+            echo "backend restarted"
+          else
+            echo "::notice::container $CONTAINER missing (infrastructure not deployed yet) – files only."
+          fi
+      - name: Live check
+        run: |
+          short="${GITHUB_SHA:0:7}"
+          ssh "$DEPLOY_USER@$DEPLOY_HOST" "grep -q '($short)' '$SERVER_DIR/app/index.html'"
+          curl -fsS --retry 5 --retry-delay 5 -o /dev/null "https://$APP_HOST/login/"
+          echo "live: $short, backend: $(curl -s -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 3 https://$APP_HOST/api/health)"
+
+  preview:
+    name: Preview
+    needs: prerequisites
+    if: needs.prerequisites.outputs.preview == 'true' && github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'root' }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      PREVIEW_PATH: ${{ vars.HERDGANG_PREVIEW_PATH }}
+      PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+      URL: ${{ needs.prerequisites.outputs.preview_base }}/pr-${{ github.event.pull_request.number }}/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund && npm run build
+        env:
+          APP_VERSION: Vorschau PR ${{ github.event.pull_request.number }} (${{ github.sha }})
+          PREVIEW: '1'
+      - name: SSH key
+        run: .github/scripts/ssh-setup.sh
+      - name: Upload
+        run: .github/scripts/upload-dir.sh dist "$DEPLOY_USER@$DEPLOY_HOST" "$SERVER_DIR/$PREVIEW_PATH/pr-$PULL_REQUEST_NUMBER"
+      - name: Check
+        run: ssh "$DEPLOY_USER@$DEPLOY_HOST" "grep -q 'Vorschau PR $PULL_REQUEST_NUMBER' '$SERVER_DIR/$PREVIEW_PATH/pr-$PULL_REQUEST_NUMBER/index.html'"
+      - name: Comment on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_STATUS: deployed
+          PREVIEW_URL: ${{ env.URL }}
+          DEPLOYED_COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: .github/scripts/preview-comment.sh
+
+  remove-preview:
+    name: Remove preview
+    needs: prerequisites
+    if: needs.prerequisites.outputs.preview == 'true' && github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER || 'root' }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      PREVIEW_PATH: ${{ vars.HERDGANG_PREVIEW_PATH }}
+      PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH key
+        run: .github/scripts/ssh-setup.sh
+      - name: Remove directory
+        run: ssh "$DEPLOY_USER@$DEPLOY_HOST" "rm -rf '$SERVER_DIR/$PREVIEW_PATH/pr-$PULL_REQUEST_NUMBER'"
+      - name: Comment on the pull request
+        env:
+          PREVIEW_STATUS: removed
+        run: .github/scripts/preview-comment.sh

@@ -1,0 +1,27 @@
+{
+  "name": "herdgang",
+  "version": "1.0.0",
+  "description": "Herdgang – recipes written for the act of cooking: ingredients next to the step that uses them, in the order they go in, with versions and feedback. Private PWA.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node tools/build.mjs --serve",
+    "build": "node tools/build.mjs && node tools/build-server.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"tests/unit/*.test.ts\" \"server/test/*.test.ts\"",
+    "e2e": "npm run build && playwright test",
+    "check": "npm run typecheck && npm test && npm run build",
+    "video": "npm run build && node tools/video/record.ts",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^24.19.1",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}
