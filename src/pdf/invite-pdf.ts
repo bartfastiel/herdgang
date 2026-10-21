@@ -53,13 +53,13 @@ export function invitePdf(inv: InviteInfo): Uint8Array {
     ? [
         ['Link auf dem neuen Gerät öffnen', 'Am besten in Chrome (Android) bzw. Safari (iPhone/iPad).'],
         ['„Passkey einrichten“ tippen', 'Bestätigen mit Fingerabdruck, Gesicht oder Geräte-PIN. Kein Passwort, kein Benutzername.'],
-        ['Zum Home-Bildschirm hinzufügen', 'Android: Menü (drei Punkte) → „App installieren“. iPhone/iPad: Teilen → „Zum Home-Bildschirm“.'],
+        ['Zum Home-Bildschirm hinzufügen', 'Android: Menü (drei Punkte), dann „App installieren“. iPhone/iPad: Teilen, dann „Zum Home-Bildschirm“.'],
       ]
     : [
         ['Link öffnen oder QR-Code scannen', 'Am besten in Chrome (Android) bzw. Safari (iPhone/iPad).'],
         ['„Passkey einrichten“ tippen', 'Bestätigen mit Fingerabdruck, Gesicht oder Geräte-PIN. Kein Passwort, kein Benutzername – künftig meldest du dich genauso an.'],
-        ['Zum Home-Bildschirm hinzufügen', 'Android: Menü (drei Punkte) → „App installieren“. iPhone/iPad: Teilen → „Zum Home-Bildschirm“. Dann startet Herdgang wie eine App und funktioniert auch offline.'],
-        ['Timer-Benachrichtigungen erlauben', 'Unter ⚙ Einstellungen → „Benachrichtigungen einrichten“. Dann meldet sich ein Timer auch, wenn das Handy gesperrt ist.'],
+        ['Zum Home-Bildschirm hinzufügen', 'Android: Menü (drei Punkte), dann „App installieren“. iPhone/iPad: Teilen, dann „Zum Home-Bildschirm“. Dann startet Herdgang wie eine App und funktioniert auch offline.'],
+        ['Timer-Benachrichtigungen erlauben', 'In Herdgang unter Einstellungen (Zahnrad oben rechts): „Benachrichtigungen einrichten“. Dann meldet sich ein Timer auch, wenn das Handy gesperrt ist.'],
       ];
   steps.forEach(([title, text], i) => {
     pdf.circle(M + 11, y - 4, 11, ACCENT);
