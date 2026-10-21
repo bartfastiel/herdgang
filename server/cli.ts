@@ -5,6 +5,7 @@
 //   invite --cookbook <id|name> --name <person> [--role owner|editor|reader] [--days 14]
 //   invite --cookbook <id|name> --user <id|name> [--days 14]      another device for an existing person
 //   users | audit [n] | logout <user-id> | passkey-remove <passkey-id> | backup <file>
+//   user-remove <user-id|name>                  person, passkeys, sessions and memberships (their comments stay)
 //
 // Recipes (for agents and scripts; --cookbook may be left out while there is only one cookbook):
 //   recipes [--cookbook X]                      id, versions, feedback count, title
@@ -74,7 +75,15 @@ try {
     for (const c of db.prepare('SELECT id, user_id, label, created, last_used FROM credentials').all()) console.log(c);
   } else if (cmd === 'logout' && args[0]) {
     console.log(db.prepare('DELETE FROM sessions WHERE user_id = ?').run(args[0]));
-  } else if (cmd === 'passkey-remove' && args[0]) {
+  } else if (cmd === 'user-remove' && args[0]) {
+  const id = user(args[0]);
+  db.exec('BEGIN');
+  for (const t of ['sessions', 'credentials', 'members', 'push_subscriptions', 'timers']) db.prepare(`DELETE FROM ${t} WHERE user_id = ?`).run(id);
+  db.prepare('DELETE FROM invites WHERE user_id = ?').run(id);
+  db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  db.exec('COMMIT');
+  console.log('removed ' + id);
+} else if (cmd === 'passkey-remove' && args[0]) {
     console.log(db.prepare('DELETE FROM credentials WHERE id = ?').run(args[0]));
   } else if (cmd === 'audit') {
     for (const r of db.prepare('SELECT * FROM audit ORDER BY time DESC LIMIT ?').all(Number(args[0] || 30))) console.log(r);
@@ -129,7 +138,7 @@ try {
     }
     console.log('exported to ' + dir);
   } else {
-    console.log('Commands: cookbook-create | cookbooks | invite | users | logout | passkey-remove | audit | backup | recipes | show | context | commit | import | export');
+    console.log('Commands: cookbook-create | cookbooks | invite | users | user-remove | logout | passkey-remove | audit | backup | recipes | show | context | commit | import | export');
     process.exitCode = 1;
   }
 } catch (err) {
