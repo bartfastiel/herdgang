@@ -61,6 +61,8 @@ The app computes them from the ingredients (`src/recipe/nutrition.ts`). What hel
 - Info texts (typically 4–8 per recipe) explain *why* something matters at this point, or how to tell that it is done.
 - Concrete checks instead of vague words: temperature, rack position, pan size, doneness test, colour, consistency.
 - Every waiting, rising, baking, cooking or resting time gets a timer with a concrete action.
+- Write for the kitchen of the cookbook. In Daniels Kochbuch: an induction hob with booster (4 l of water boil in about
+  10 min, frying fat is hot in 4–8 min), Dinkelmehl Type 630 as the only flour, meals for 4 persons.
 
 ## Versions from feedback (for agents)
 
