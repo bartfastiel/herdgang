@@ -1,4 +1,5 @@
 // Entry: header, page per route, timer bar, sync, service worker.
+import { watchRecipe } from './cooked.ts';
 import { current, link } from './nav.ts';
 import { entry, reload } from './state.ts';
 import { currentCookbook, initSync, onStatus, syncInfo } from './sync.ts';
@@ -45,6 +46,7 @@ function show(): void {
   clear(main);
   header();
   document.body.dataset.route = place.route;
+  watchRecipe(place.route === 'recipe' ? place.id : null);
   if (place.route === 'recipe') leave = recipeView(main, place.id, place.params);
   else if (place.route === 'edit' || place.route === 'new') leave = editorView(main, place.route === 'edit' ? place.id : '');
   else if (place.route === 'settings') settingsView(main);

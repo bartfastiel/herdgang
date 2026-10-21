@@ -1,6 +1,6 @@
-// Start page: all recipes of the cookbook with search and tag filter.
+// Start page: all recipes of the cookbook with search and tag filter, the ones made most often by this person first.
 import { link } from '../nav.ts';
-import { createRecipe, entries, parsed } from '../state.ts';
+import { cookedCounts, createRecipe, entries, parsed } from '../state.ts';
 import { canEdit, currentCookbook, currentMode } from '../sync.ts';
 import { clear, h } from '../ui/dom.ts';
 
@@ -12,7 +12,11 @@ let tag = '';
 const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 export function homeView(root: HTMLElement): void {
-  const all = entries();
+  const made = cookedCounts();
+  // most often made first; otherwise alphabetical (entries() is sorted by title, sort() is stable)
+  const all = entries()
+    .slice()
+    .sort((a, b) => (made[b.recipe.id] || 0) - (made[a.recipe.id] || 0));
   const tags = new Map<string, number>();
   for (const e of all) for (const t of parsed(e.head).recipe.tags) tags.set(t, (tags.get(t) || 0) + 1);
   const list = h('div', { class: 'list' });
@@ -37,6 +41,7 @@ export function homeView(root: HTMLElement): void {
           h('div', { class: 'meta' },
             r.time ? h('span', null, '⏱ ' + r.time.split(',')[0]) : null,
             r.yieldText ? h('span', null, r.yieldText) : null,
+            made[e.recipe.id] ? h('span', { class: 'badge' }, made[e.recipe.id] + '× gemacht') : null,
             e.revisions.length > 1 ? h('span', { class: 'badge' }, 'v' + e.revisions.length) : null,
             e.comments.length ? h('span', { class: 'badge warn' }, '💬 ' + e.comments.length) : null)),
       );

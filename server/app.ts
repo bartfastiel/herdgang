@@ -29,7 +29,7 @@ export interface Config {
 export const SESSION_COOKIE = '__Host-hg';
 const SESSION_TTL = 90 * 24 * 3600 * 1000;
 const CHALLENGE_TTL = 5 * 60 * 1000;
-export const STORES = ['recipes', 'revisions', 'comments', 'foods'];
+export const STORES = ['recipes', 'revisions', 'comments', 'foods', 'cooked'];
 export const ROLES = ['owner', 'editor', 'reader'];
 /** reachable without a session (sign-in page, icons, manifest) */
 const PUBLIC_PATHS = /^\/(login\/.*|icon[^/]*\.(svg|png)|manifest\.webmanifest|robots\.txt|favicon\.ico)$/;
@@ -224,9 +224,12 @@ export function createApp(cfg: Config) {
 
   const text = (v: unknown, max: number): string => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
-  /** whether this user may write this record (readers only comment; comments only by their author or an owner) */
+  /**
+   * whether this user may write this record: readers only comment and note that they made a recipe; comments and those
+   * notes only in their own name, changed only by their author or an owner
+   */
   function allowed(s: Session, r: string, store: string, data: unknown, old: { json: string; deleted: number } | undefined): boolean {
-    if (store !== 'comments') return r === 'owner' || r === 'editor';
+    if (store !== 'comments' && store !== 'cooked') return r === 'owner' || r === 'editor';
     const author = (x: unknown) => {
       const a = x && typeof x === 'object' ? (x as { author?: { id?: unknown } }).author : undefined;
       return a && typeof a.id === 'string' ? a.id : null;
