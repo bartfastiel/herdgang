@@ -272,21 +272,20 @@ function stepsTab(root: HTMLElement, e: Entry, rev: Revision, r: Recipe, ui: Ui,
   if (r.equipment.length)
     root.appendChild(h('details', { class: 'equip card' }, h('summary', null, `Geräte (${r.equipment.length})`), h('ul', null, r.equipment.map((x) => h('li', null, x)))));
   const timerRows: (HTMLElement & { refresh?: () => void })[] = [];
-  const hover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   for (const { step, section, n } of allSteps(r)) {
     if (section.title && section.steps[0] === step) root.appendChild(h('h2', { class: 'sec-title' }, section.title));
     const el = h('section', { class: 'step' + (ui.done.indexOf(n) >= 0 ? ' done' : ''), id: 's-' + n });
     const tips = h('div', { class: 'tips' });
     const openTips = new Map<string, HTMLElement>();
-    const toggleTip = (key: string, label: string, text: string, anchor?: HTMLElement, force?: boolean) => {
+    // explanations open and close on a click or tap only – never on mouse-over (Daniel: the page must not jump around)
+    const toggleTip = (key: string, label: string, text: string, anchor?: HTMLElement) => {
       const open = openTips.get(key);
-      if (open && force !== true) {
+      if (open) {
         open.remove();
         openTips.delete(key);
         if (anchor) anchor.classList.remove('open');
         return;
       }
-      if (open) return;
       const box = h('p', { class: 'tipbox' }, label ? h('b', null, label + ': ') : null, text);
       tips.appendChild(box);
       openTips.set(key, box);
@@ -311,7 +310,6 @@ function stepsTab(root: HTMLElement, e: Entry, rev: Revision, r: Recipe, ui: Ui,
         btn.addEventListener('keydown', (ev: KeyboardEvent) => {
           if (ev.key === 'Enter' || ev.key === ' ') (ev.preventDefault(), toggleTip(key, seg.s, seg.tip, btn));
         });
-        if (hover) btn.addEventListener('mouseenter', () => toggleTip(key, seg.s, seg.tip, btn, true));
         text.appendChild(btn);
       }
     }

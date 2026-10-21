@@ -56,9 +56,14 @@ test('cooking with a recipe: amounts, info, timers, feedback, versions, PDF, inv
   await expect(step1.locator('.ings')).toContainText('≈ 225 ml');
   await expect(page.locator('#s-2 .ings')).toContainText('2 Eier (Größe M)');
 
-  // the "i" explains why
-  await step1.getByRole('button', { name: 'einrühren – Erklärung zeigen' }).click();
+  // the "i" explains why: a click opens, a second click closes, the mouse alone never opens anything
+  const tip = step1.getByRole('button', { name: 'einrühren – Erklärung zeigen' });
+  await tip.hover();
+  await expect(step1.locator('.tipbox')).toHaveCount(0);
+  await tip.click();
   await expect(step1.locator('.tipbox')).toContainText('Erst wenig Milch');
+  await tip.click();
+  await expect(step1.locator('.tipbox')).toHaveCount(0);
 
   // scaling
   await page.getByRole('button', { name: 'mehr' }).click();
