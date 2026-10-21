@@ -57,6 +57,14 @@ node tools/bls.ts <BLS_4_0_Daten_2025_DE.xlsx>     # rebuild nutrition/bls.json 
   Salt for cooking water and deep-frying fat count 10 %, spices/flavourings not at all, sections „Variante …“ not at
   all; whole fish keeps its edible share. Raw weights are summed, so „pro 100 g“ only where the finished weight is
   stated.
+- **Daniel's kitchen (2026-10-21)** – every recipe is written for it:
+  - Miele induction hob on three-phase power (about 7.3 kW in total, zones 2.1–2.3 kW, booster 3.0 kW, TwinBooster
+    3.65 kW). With booster on the large zone water boils in about 2.5–3 min per litre (4 l ≈ 10 min, 3 l ≈ 7 min);
+    frying fat reaches 165–175 °C in 4–8 min at about 7 of 9, without booster. Plan the order of steps for these times.
+  - Dinkelmehl Type 630 instead of any wheat flour, 1:1. Yeast doughs are kneaded 6–8 min, not longer. Hartweizengrieß
+    is not flour and stays.
+  - Meals for 4 persons by default („Ergibt: 4 Portionen“); cakes, bread, cookies, jam keep their natural unit.
+  - Version 2 of 32 recipes (2026-10-21) applied this to the existing collection.
 - **Browsers**: down to Safari 14.1 (older iPads). No lookbehind regexes, no `Array.prototype.at`, no
   `structuredClone`, no `crypto.randomUUID` in the app.
 
