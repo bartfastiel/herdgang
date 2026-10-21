@@ -1,5 +1,10 @@
 #!/bin/sh
-# Conventional Commits: type(scope)?: description – merge commits are exempt.
+# Conventional Commits: type(scope)?: description – merge commits are exempt. No co-author, session or „generated
+# with“ trailers: the repository carries no attribution to tools (AGENTS.md).
+if grep -Eiq '^(co-authored-by|[a-z-]*-session):|generated with' "$1"; then
+  echo "No co-author, session or \"generated with\" lines in commit messages (see AGENTS.md)." >&2
+  exit 1
+fi
 first=$(sed -n '1p' "$1")
 case "$first" in
   Merge*) exit 0 ;;
