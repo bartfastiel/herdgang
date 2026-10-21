@@ -19,7 +19,8 @@ thought through for the kitchen – not an endless library.
 - **Kitchen timers** on the steps that need them – any number at once. When one is due it rings like an alarm clock,
   with the step's own text („take the bread out of the oven“), until someone taps „done“. The screen stays on while
   cooking; with notifications enabled the server also sends a push message when the phone is locked.
-- **PDF** of every recipe, laid out the same way (two columns, notes under the steps).
+- **PDF** of every recipe for printing, laid out the same way and fitted on one A4 page: if needed without the
+  explanations, subtitle and equipment, and in smaller type.
 - **Versions like commits**: every change is a new, immutable version with a message („20 g more water, dough was too
   stiff“). Older versions stay readable; „differences“ shows a line diff and a summary of changed amounts.
 - **Feedback per version** with name and time, editable and deletable by its author. „Copy for AI“ puts the recipe,

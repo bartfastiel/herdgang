@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { invitePdf } from '../../src/pdf/invite-pdf.ts';
 import { encode, wrap } from '../../src/pdf/pdf.ts';
-import { recipePdf } from '../../src/pdf/recipe-pdf.ts';
+import { pdfFit, recipePdf } from '../../src/pdf/recipe-pdf.ts';
 import { qr } from '../../src/qr.ts';
 import { changedAmounts, diffLines, shoppingList } from '../../src/recipe/compare.ts';
 import { parse } from '../../src/recipe/format.ts';
@@ -40,6 +40,18 @@ test('recipe PDF is well-formed, scaled, and keeps umlauts', () => {
   assert.match(s, /Version 3/);
   assert.match(s, /einr\\374hren/);
   assert.match(s, /Timer 20 min: /);
+  // fits on one page, with the explanations
+  assert.deepEqual(pdfFit(r, { factor: 1, version: 1, date: 0 }), { scale: 1, tips: true, extras: true, pages: 1 });
+});
+
+test('a long recipe still fits on one A4 page: explanations out, then smaller type', () => {
+  const step = (i: number) => `- ${i * 10} g Zutat ${i}, fein gehackt\nDen Teig [kräftig rühren]{Damit sich alles gut verbindet und keine Klümpchen bleiben.} und dann ${'sehr lange '.repeat(12)}weiterarbeiten.\nTimer: 5 min – weiter mit Schritt ${i + 1}\n`;
+  const long = parse('# Lang\nErgibt: 4 Portionen\nHinweis: Am Vortag beginnen.\n\n' + Array.from({ length: 16 }, (_, i) => step(i + 1)).join('\n')).recipe;
+  const fit = pdfFit(long, { factor: 1, version: 1, date: 0 });
+  assert.equal(fit.pages, 1);
+  assert.equal(fit.tips, false);
+  assert.ok(fit.scale < 1);
+  assert.match(checkPdf(recipePdf(long, { factor: 1, version: 1, date: 0 })), /Am Vortag beginnen/);
 });
 
 test('invite PDF carries the link and a QR code', () => {
