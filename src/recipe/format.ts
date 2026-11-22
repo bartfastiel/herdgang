@@ -8,6 +8,7 @@
 //   Geräte: Auflaufform 20 × 30 cm, Backpapier, Topf
 //   Hinweis: free text shown above the steps
 //   Herkunft: free text (never a link)
+//   Quelle: one https link to the original recipe (the only place a link is allowed)
 //
 //   ## Teig                                 ← optional section (phase)
 //
@@ -72,6 +73,8 @@ export interface Recipe {
   equipment: string[];
   note?: string;
   origin?: string;
+  /** link to the original recipe (https only) */
+  source?: string;
   sections: Section[];
 }
 
@@ -94,6 +97,7 @@ const HEADER_KEYS: Record<string, keyof Recipe | 'yield'> = {
   geräte: 'equipment',
   hinweis: 'note',
   herkunft: 'origin',
+  quelle: 'source',
 };
 
 /** units with their kind; keys are lower-case spellings, values the normalised singular */
@@ -153,6 +157,7 @@ const NUM = String.raw`(?:\d+(?:[.,]\d+)?\s*[½¼¾⅓⅔⅛]|\d+\/\d+|\d+(?:[.,
 const AMOUNT_RE = new RegExp(String.raw`^(ca\.\s*)?(${NUM})(?:\s*(?:–|-|bis)\s*(${NUM}))?(?=\s|$)`);
 const GRAMS_RE = /\s*=\s*(\d+(?:[.,]\d+)?)\s*g\b/;
 const URL_RE = /\b(https?:\/\/|www\.)\S+/i;
+const SOURCE_RE = /^https:\/\/[^\s/]+\.[^\s/]+(\/\S*)?$/;
 
 export function parseNumber(s: string): number {
   const t = s.replace(/\s+/g, '');
@@ -254,7 +259,7 @@ export function parse(source: string): Parsed {
     const m = /^([A-Za-zÄÖÜäöüß]+)\s*:\s*(.*)$/.exec(l);
     const key = m ? HEADER_KEYS[m[1].toLowerCase()] : undefined;
     if (!m || !key) {
-      errors.push({ line: i + 1, message: 'Unbekannte Kopfzeile: „' + l + '“ (erlaubt: Untertitel, Ergibt, Zeit, Schlagworte, Geräte, Hinweis, Herkunft). Nach dem Kopf eine Leerzeile.' });
+      errors.push({ line: i + 1, message: 'Unbekannte Kopfzeile: „' + l + '“ (erlaubt: Untertitel, Ergibt, Zeit, Schlagworte, Geräte, Hinweis, Herkunft, Quelle). Nach dem Kopf eine Leerzeile.' });
       continue;
     }
     const v = m[2].trim();
@@ -263,6 +268,9 @@ export function parse(source: string): Parsed {
       const y = new RegExp(String.raw`^(${NUM})\s+(.+)$`).exec(v);
       if (y) recipe.yield = { amount: parseNumber(y[1]), unit: y[2].trim() };
       else warnings.push({ line: i + 1, message: '„Ergibt“ ohne Zahl – Mengen lassen sich dann nicht umrechnen.' });
+    } else if (key === 'source') {
+      if (SOURCE_RE.test(v)) recipe.source = v;
+      else errors.push({ line: i + 1, message: '„Quelle“ muss genau ein Link sein (nur https).' });
     } else if (key === 'tags' || key === 'equipment') {
       recipe[key] = v.split(/\s*[,;]\s*/).filter(Boolean);
     } else (recipe as unknown as Record<string, string>)[key] = v;

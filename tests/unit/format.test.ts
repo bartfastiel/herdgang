@@ -93,6 +93,16 @@ test('errors and warnings', () => {
   assert.ok(parse('# X\n\nMehl [sieben]{weil.\n').errors.some((e) => /Klammern/.test(e.message)));
 });
 
+test('a link to the original only in „Quelle“', () => {
+  const ok = parse('# X\nHerkunft: Sammlung\nQuelle: https://example.org/rezepte/1/x.html\n\nRühren.\n');
+  assert.deepEqual(ok.errors, []);
+  assert.equal(ok.recipe.source, 'https://example.org/rezepte/1/x.html');
+  assert.equal(ok.recipe.origin, 'Sammlung');
+  assert.ok(parse('# X\nQuelle: http://example.org/x\n\nRühren.\n').errors.some((e) => /Quelle/.test(e.message)));
+  assert.ok(parse('# X\nQuelle: Oma\n\nRühren.\n').errors.some((e) => /Quelle/.test(e.message)));
+  assert.ok(parse('# X\nHerkunft: https://example.org\n\nRühren.\n').errors.some((e) => /Links/.test(e.message)));
+});
+
 test('grams by default, counts for countable things', () => {
   const p: Problem[] = [];
   const flour = parseIngredient('250 g Weizenmehl', 1, p);
