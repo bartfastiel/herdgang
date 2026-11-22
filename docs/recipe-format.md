@@ -11,7 +11,8 @@ Zeit: 30 min Arbeit, 3 h gesamt
 Schlagworte: Backen, Kuchen, Süß      ← tags for filtering
 Geräte: Auflaufform 20 × 30 cm, Topf  ← equipment
 Hinweis: shown above the steps (e.g. „take the butter out of the fridge 1 h before“)
-Herkunft: where the recipe comes from (text only, never a link)
+Herkunft: where the recipe comes from (text only)
+Quelle: link to the original recipe (https; the only place a link is allowed)
 
 ## Teig                                ← optional section (a phase such as „Am Vortag“, „Teig“, „Backen“)
 
@@ -37,7 +38,8 @@ Timer: 25 min – Brownies aus dem Ofen nehmen
 - Inline info: `[anchor words]{explanation}`; an explanation without anchor: `…sentence.{explanation}`. Bold: `**…**`.
 - `Timer: <duration> – <what to do when it rings>`. Durations: `45 min`, `1 h 30 min`, `90 s`, `10–12 min` (rings at
   the lower bound). The text is the notification on a locked phone, so it must make sense on its own.
-- No links anywhere in a recipe.
+- Links only in `Quelle:` (shown as „Original bei <host>“ below the steps). Recipes live in the private database, never
+  in this repository, so their links do too.
 - A section whose title starts with `Variante` is optional: its ingredients are not part of the nutrition facts.
 
 ## Nutrition facts

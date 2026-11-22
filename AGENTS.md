@@ -47,6 +47,9 @@ node tools/bls.ts <BLS_4_0_Daten_2025_DE.xlsx>     # rebuild nutrition/bls.json 
   outside are replaced), `src/qr.ts` generates QR codes (checked against an independent decoder).
 - **No links in the repository** (Daniel's wish): no URLs, no references to recipe platforms. The live host name lives
   in the repository variable `HERDGANG_HOST`, not in the code.
+- **Links to originals only in the database (Daniel, 2026-11-22)**: the app is private (invite + passkey, noindex), so a
+  recipe may carry one `Quelle:` header with an https link, shown as „Original bei <host>“ below the steps. Everywhere else links
+  stay forbidden. Importing from outside collections is not part of this repository.
 - **Nutrition facts (Daniel, 2026-10-21)**: from the Bundeslebensmittelschlüssel (BLS) 4.0 of the Max Rubner-Institut,
   open data under CC BY 4.0 – the same source Triggerfinder uses. `nutrition/bls.json` is an extract (code, name, eight
   values per 100 g, about 0.6 MB, 200 KB compressed); the build hashes it into `assets/`, the service worker keeps it

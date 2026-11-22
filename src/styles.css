@@ -256,3 +256,5 @@ label { display: block; font-weight: 600; margin: 12px 0 6px; }
 /* login */
 body.login main { max-width: 480px; padding-top: 28px; }
 body.login .card h2 { margin-bottom: 12px; }
+.origin { margin-top: 1.5rem; font-size: .9rem; }
+.origin a { color: inherit; }

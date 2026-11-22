@@ -342,6 +342,8 @@ function stepsTab(root: HTMLElement, e: Entry, rev: Revision, r: Recipe, ui: Ui,
     root.appendChild(el);
   }
   if (!allSteps(r).length) root.appendChild(h('p', { class: 'muted' }, 'Dieses Rezept hat noch keine Schritte.'));
+  const origin = originLine(r);
+  if (origin) root.appendChild(origin);
   // live countdowns: rebuild a row when its timer starts/stops/rings, otherwise only update the numbers
   let sig = '';
   const signature = () => running().map((t) => t.id + (t.ringing ? '!' : '')).join(',');
@@ -361,6 +363,21 @@ function stepsTab(root: HTMLElement, e: Entry, rev: Revision, r: Recipe, ui: Ui,
 }
 
 // ---- Zutaten ---------------------------------------------------------------------------------------------------------
+
+/** where the recipe comes from, with a link to the original if there is one */
+function originLine(r: Recipe): HTMLElement | null {
+  if (!r.origin && !r.source) return null;
+  let host = '';
+  try {
+    host = r.source ? new URL(r.source).hostname.replace(/^www\./, '') : '';
+  } catch {
+    host = '';
+  }
+  return h('p', { class: 'origin muted' },
+    r.origin ? 'Herkunft: ' + r.origin : null,
+    r.origin && host ? ' · ' : null,
+    host ? h('a', { href: r.source, target: '_blank', rel: 'noopener noreferrer' }, 'Original bei ' + host + ' ↗') : null);
+}
 
 function listTab(root: HTMLElement, r: Recipe, rev: Revision, ui: Ui, factor: number): void {
   const items = shoppingList(r);
