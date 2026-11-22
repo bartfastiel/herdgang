@@ -50,6 +50,11 @@ node tools/bls.ts <BLS_4_0_Daten_2025_DE.xlsx>     # rebuild nutrition/bls.json 
 - **Links to originals only in the database (Daniel, 2026-11-22)**: the app is private (invite + passkey, noindex), so a
   recipe may carry one `Quelle:` header with an https link, shown as „Original bei <host>“ below the steps. Everywhere else links
   stay forbidden. Importing from outside collections is not part of this repository.
+- **Photos (Daniel, 2026-11-22)**: one tap on „📷 Foto“ per recipe (camera or gallery). The app shrinks the picture
+  to 1600 px (JPEG) plus a 240 px square preview, keeps both in the IndexedDB store `blobs` until the next sync uploads
+  them (`POST /api/photos`, before the records), and the record in store `photos` says recipe and author. Bytes live in
+  the SQLite table `photos` (so the nightly backup has them) and are dropped when the record is deleted. Everyone in
+  the cookbook may add photos in their own name, like comments; the newest one shows on the recipe and the start page.
 - **Nutrition facts (Daniel, 2026-10-21)**: from the Bundeslebensmittelschlüssel (BLS) 4.0 of the Max Rubner-Institut,
   open data under CC BY 4.0 – the same source Triggerfinder uses. `nutrition/bls.json` is an extract (code, name, eight
   values per 100 g, about 0.6 MB, 200 KB compressed); the build hashes it into `assets/`, the service worker keeps it

@@ -1,5 +1,5 @@
 // HTTP layer: passkey sign-in with invite links, sessions, the check for Caddy (forward_auth), sync of the cookbook
-// records (recipes, revisions, comments), invites and members, push subscriptions and kitchen timers.
+// records (recipes, revisions, comments, photos), photo bytes, invites and members, push subscriptions and kitchen timers.
 //
 // Conventions: errors as {"error": {"code", "message"}} (messages in German, they are shown in the app), fields in
 // snake_case, times in milliseconds. Every changing request needs a matching Origin header. Session cookie `__Host-hg`
@@ -29,7 +29,9 @@ export interface Config {
 export const SESSION_COOKIE = '__Host-hg';
 const SESSION_TTL = 90 * 24 * 3600 * 1000;
 const CHALLENGE_TTL = 5 * 60 * 1000;
-export const STORES = ['recipes', 'revisions', 'comments', 'foods', 'cooked'];
+export const STORES = ['recipes', 'revisions', 'comments', 'foods', 'cooked', 'photos'];
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const PHOTO_LIMIT = 4 * 1024 * 1024;
 export const ROLES = ['owner', 'editor', 'reader'];
 /** reachable without a session (sign-in page, icons, manifest) */
 const PUBLIC_PATHS = /^\/(login\/.*|icon[^/]*\.(svg|png)|manifest\.webmanifest|robots\.txt|favicon\.ico)$/;
@@ -222,14 +224,21 @@ export function createApp(cfg: Config) {
       .all(userId) as { id: string; name: string; role: string }[];
   }
 
+  function photoId(url: URL): string {
+    const id = url.searchParams.get('id') || '';
+    if (!/^[0-9a-f]{24}$/.test(id)) throw new HttpError(400, 'bad_request', 'Ungültige Foto-Id.');
+    return id;
+  }
+  const photoSize = (url: URL): string => (url.searchParams.get('size') === 'thumb' ? 'thumb' : 'full');
+
   const text = (v: unknown, max: number): string => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
   /**
-   * whether this user may write this record: readers only comment and note that they made a recipe; comments and those
-   * notes only in their own name, changed only by their author or an owner
+   * whether this user may write this record: readers only comment, add photos and note that they made a recipe; those
+   * only in their own name, changed only by their author or an owner
    */
   function allowed(s: Session, r: string, store: string, data: unknown, old: { json: string; deleted: number } | undefined): boolean {
-    if (store !== 'comments' && store !== 'cooked') return r === 'owner' || r === 'editor';
+    if (store !== 'comments' && store !== 'cooked' && store !== 'photos') return r === 'owner' || r === 'editor';
     const author = (x: unknown) => {
       const a = x && typeof x === 'object' ? (x as { author?: { id?: unknown } }).author : undefined;
       return a && typeof a.id === 'string' ? a.id : null;
@@ -468,6 +477,7 @@ export function createApp(cfg: Config) {
       let accepted = 0;
       let rejected = 0;
       const get = db.prepare('SELECT json, updated, deleted FROM records WHERE cookbook_id = ? AND store = ? AND id = ?');
+      const dropPhoto = db.prepare('DELETE FROM photos WHERE cookbook_id = ? AND id = ?');
       const put = db.prepare(
         'INSERT INTO records (cookbook_id, store, id, json, updated, received, deleted) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (cookbook_id, store, id) DO UPDATE SET json = excluded.json, updated = excluded.updated, received = excluded.received, deleted = excluded.deleted',
       );
@@ -495,6 +505,7 @@ export function createApp(cfg: Config) {
           }
           if (old && old.json === serial && !!old.deleted === !!rec.deleted) continue;
           put.run(cookbook, rec.store, rec.id, serial, updated, received++, rec.deleted ? 1 : 0);
+          if (rec.store === 'photos' && rec.deleted) dropPhoto.run(cookbook, rec.id);
           accepted++;
         }
         db.exec('COMMIT');
@@ -504,6 +515,34 @@ export function createApp(cfg: Config) {
       }
       if (rejected) audit('records_rejected', s.userId, clientIp(req), String(rejected));
       json(res, 200, { accepted, rejected });
+    },
+
+    // Photo bytes (the record in `photos` says which recipe and who). Ids are random and never reused, so the bytes never
+    // change: uploading again keeps the first upload, and browsers may cache them for good.
+    'POST /api/photos': async (req, res, url) => {
+      const s = requireSession(req);
+      const cookbook = url.searchParams.get('cookbook') as string;
+      role(s.userId, cookbook);
+      const id = photoId(url);
+      const size = photoSize(url);
+      const type = String(req.headers['content-type'] || '').split(';')[0].trim();
+      if (PHOTO_TYPES.indexOf(type) < 0) throw new HttpError(415, 'bad_type', 'Nur JPEG, PNG oder WebP.');
+      const bytes = await raw(req, PHOTO_LIMIT);
+      if (!bytes.length) throw new HttpError(400, 'bad_request', 'Kein Bild.');
+      db.prepare('INSERT OR IGNORE INTO photos (cookbook_id, id, size, type, bytes, created) VALUES (?, ?, ?, ?, ?, ?)').run(cookbook, id, size, type, bytes, now());
+      json(res, 200, { ok: true });
+    },
+
+    'GET /api/photos': (req, res, url) => {
+      const s = requireSession(req);
+      const cookbook = url.searchParams.get('cookbook');
+      role(s.userId, cookbook);
+      const row = db.prepare('SELECT type, bytes FROM photos WHERE cookbook_id = ? AND id = ? AND size = ?').get(cookbook, photoId(url), photoSize(url)) as
+        | { type: string; bytes: Uint8Array }
+        | undefined;
+      if (!row) throw new HttpError(404, 'not_found', 'Foto nicht gefunden.');
+      res.writeHead(200, { 'Content-Type': row.type, 'Cache-Control': 'private, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' });
+      res.end(Buffer.from(row.bytes));
     },
 
     'POST /api/push/subscribe': async (req, res) => {

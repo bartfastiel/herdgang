@@ -1,5 +1,5 @@
 // One recipe: steps with their ingredients side by side („Ablauf“), the summed-up list with nutrition facts
-// („Zutaten“), feedback per version („Feedback“) and the history („Versionen“). Amounts follow the chosen yield;
+// („Zutaten“), feedback per version („Feedback“) and the history („Versionen“); photos of the dish above them. Amounts follow the chosen yield;
 // tapping an amount switches its unit (g → ml → EL …); tapping a step number marks it done.
 import { loadFoods } from '../foods.ts';
 import { link, replaceQuery } from '../nav.ts';
@@ -8,13 +8,14 @@ import { changedAmounts, diffLines, shoppingList } from '../recipe/compare.ts';
 import { context } from '../recipe/context.ts';
 import { allSteps, inline, type Ingredient, type Recipe, type Step } from '../recipe/format.ts';
 import { choiceLabel, choices, fmtFraction, show, type Choice } from '../recipe/units.ts';
-import { addComment, deleteComment, deleteRecipe, editComment, entry, mine, parsed, versionOf, type Entry } from '../state.ts';
-import { canEdit, currentMode } from '../sync.ts';
+import { photoImg, shrink } from '../photos.ts';
+import { addComment, addPhoto, deleteComment, deletePhoto, deleteRecipe, editComment, entry, mine, parsed, versionOf, type Entry } from '../state.ts';
+import { canEdit, currentMode, isOwner } from '../sync.ts';
 import { byKey, cancel, extend, onTimers, remaining, running, start, type TimerDef } from '../timers.ts';
 import { add, clear, confirmButton, fmtDateTime, h, toast } from '../ui/dom.ts';
 import { holdScreen, screenLockSupported } from '../ui/wakelock.ts';
 import { kcalButton, nutritionSection, pdfNutrition } from './nutrition.ts';
-import type { Comment, Revision } from '../data/types.ts';
+import type { Comment, Photo, Revision } from '../data/types.ts';
 
 type Tab = 'steps' | 'list' | 'feedback' | 'versions';
 const TABS: [Tab, string][] = [
@@ -77,6 +78,7 @@ export function recipeView(root: HTMLElement, id: string, params: URLSearchParam
   // ---- head ----
   const head = h('div', { class: 'rhead' }, h('h1', null, r.title || 'Ohne Titel'), r.subtitle ? h('p', { class: 'sub' }, r.subtitle) : null);
   root.appendChild(head);
+  if (e.photos.length) root.appendChild(photoBox(e));
   if (!isHead)
     root.appendChild(
       h('div', { class: 'notice old-version' }, `Du siehst Version ${version} von ${e.revisions.length} (${fmtDateTime(rev.created)}). `, h('a', { href: link('recipe', e.recipe.id) }, 'Zur aktuellen Version')),
@@ -140,6 +142,7 @@ export function recipeView(root: HTMLElement, id: string, params: URLSearchParam
             yieldOut,
             h('button', { type: 'button', 'aria-label': 'mehr', onclick: () => stepYield(1) }, '+'))
         : null,
+      photoButton(e),
       h('button', { type: 'button', onclick: () => downloadPdf(e, rev, r, factor(), ui, version) }, '⤓ PDF'),
       screenLockSupported() ? screenBtn : null,
       canEdit() && isHead ? h('a', { class: 'button', href: link('edit', e.recipe.id) }, '✎ Bearbeiten') : null),
@@ -202,6 +205,58 @@ export function recipeView(root: HTMLElement, id: string, params: URLSearchParam
     }, 50);
   }
   return cleanupAll;
+}
+
+// ---- Fotos ----------------------------------------------------------------------------------------------------------
+
+/** one tap: the phone offers camera or gallery, the picture is shrunk, stored and shown */
+function photoButton(e: Entry): HTMLElement {
+  const input = h('input', { type: 'file', accept: 'image/*', class: 'hidden', 'aria-hidden': 'true', tabindex: '-1' }) as HTMLInputElement;
+  const btn = h('button', { type: 'button', onclick: () => input.click() }, '📷 Foto');
+  input.addEventListener('change', () => {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    btn.disabled = true;
+    btn.textContent = '📷 Speichert …';
+    shrink(file)
+      .then((pic) => addPhoto(e, pic))
+      .then(() => {
+        toast('Foto gespeichert.');
+        rerender();
+        window.scrollTo(0, 0);
+      })
+      .catch((err: Error) => {
+        toast(err.message || 'Foto konnte nicht gespeichert werden.');
+        btn.disabled = false;
+        btn.textContent = '📷 Foto';
+      });
+  });
+  return h('span', { class: 'photo-add' }, btn, input);
+}
+
+/** the newest photo large; with several, small ones below to switch */
+function photoBox(e: Entry): HTMLElement {
+  const box = h('figure', { class: 'photo' });
+  const show = (ph: Photo) => {
+    clear(box);
+    box.appendChild(photoImg(ph, 'full', 'photo-big', 'Foto: ' + (parsed(e.head).recipe.title || 'Gericht')));
+    const cap = h('figcaption', { class: 'row muted' }, h('span', null, `${ph.author.name}, ${fmtDateTime(ph.created).split(',')[0]}`));
+    if (mine(ph) || isOwner())
+      cap.appendChild(confirmButton('Foto löschen', 'Wirklich löschen?', () => void deletePhoto(ph).then(() => (toast('Foto gelöscht.'), rerender())), 'link danger'));
+    box.appendChild(cap);
+    if (e.photos.length > 1) {
+      const strip = h('div', { class: 'photo-strip', role: 'group', 'aria-label': 'Alle Fotos' });
+      for (const p of e.photos)
+        strip.appendChild(
+          h('button', { type: 'button', class: 'photo-pick', 'aria-pressed': p.id === ph.id ? 'true' : 'false', 'aria-label': 'Foto vom ' + fmtDateTime(p.created).split(',')[0], onclick: () => show(p) },
+            photoImg(p, 'thumb', 'photo-thumb')),
+        );
+      box.appendChild(strip);
+    }
+  };
+  show(e.photos[0]);
+  return box;
 }
 
 // ---- Ablauf ----------------------------------------------------------------------------------------------------------

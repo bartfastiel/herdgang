@@ -166,6 +166,33 @@ test('cookbooks are separate, roles decide who may write what', async () => {
   assert.deepEqual(all.data.records.map((r: { id: string; deleted: boolean }) => r.id + (r.deleted ? '†' : '')).sort(), ['butter', 'c1†', 'm1', 'r1', 'v1']);
 });
 
+test('photos: bytes only for members, deleting the photo record drops them', async () => {
+  const cook = await person('Lena', BOOK, 'reader');
+  const neighbour = await person('Fremd', OTHER, 'owner');
+  const id = 'ab'.repeat(12);
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 0xff, 0xd9]);
+  const up = (cookie: string, cookbook = BOOK, type = 'image/jpeg', photo = id) =>
+    fetch(`${base}/api/photos?cookbook=${cookbook}&id=${photo}&size=full`, { method: 'POST', headers: { Cookie: cookie, Origin: ORIGIN, 'Content-Type': type }, body: jpeg });
+  const get = (cookie: string, cookbook = BOOK) => fetch(`${base}/api/photos?cookbook=${cookbook}&id=${id}&size=full`, { headers: { Cookie: cookie } });
+  assert.equal((await up(neighbour.cookie)).status, 403);
+  assert.equal((await up(cook.cookie, BOOK, 'text/html')).status, 415);
+  assert.equal((await up(cook.cookie, BOOK, 'image/jpeg', '../x')).status, 400);
+  assert.equal((await up(cook.cookie)).status, 200);
+  const res = await get(cook.cookie);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('content-type'), 'image/jpeg');
+  assert.deepEqual(Buffer.from(await res.arrayBuffer()), jpeg);
+  assert.equal((await get(neighbour.cookie)).status, 403);
+  assert.equal((await fetch(`${base}/api/photos?cookbook=${BOOK}&id=${id}`)).status, 401);
+  // the record: readers too, in their own name only
+  const rec = { store: 'photos', id, updated: clock, data: { id, recipeId: 'r1', author: { id: cook.id, name: 'Lena' }, created: clock, width: 1, height: 1 } };
+  assert.equal((await call('/api/records?cookbook=' + BOOK, { records: [{ ...rec, data: { ...rec.data, author: { id: neighbour.id, name: 'X' } } }] }, cook.cookie)).data.rejected, 1);
+  assert.equal((await call('/api/records?cookbook=' + BOOK, { records: [rec] }, cook.cookie)).data.accepted, 1);
+  clock += 1000;
+  assert.equal((await call('/api/records?cookbook=' + BOOK, { records: [{ store: 'photos', id, updated: clock, deleted: true }] }, cook.cookie)).data.accepted, 1);
+  assert.equal((await get(cook.cookie)).status, 404);
+});
+
 test('invites from the app: owners only; joining another cookbook keeps the account', async () => {
   const owner = await person('Oma', OTHER, 'owner');
   const reader = await person('Leser', BOOK, 'reader');

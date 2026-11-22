@@ -1,5 +1,7 @@
-// Start page: all recipes of the cookbook with search and tag filter, the ones made most often by this person first.
+// Start page: all recipes of the cookbook with search and tag filter, the ones made most often by this person first;
+// a recipe with a photo shows its newest one small.
 import { link } from '../nav.ts';
+import { photoImg } from '../photos.ts';
 import { cookedCounts, createRecipe, entries, parsed } from '../state.ts';
 import { canEdit, currentCookbook, currentMode } from '../sync.ts';
 import { clear, h } from '../ui/dom.ts';
@@ -35,7 +37,8 @@ export function homeView(root: HTMLElement): void {
     for (const e of hits) {
       const r = parsed(e.head).recipe;
       list.appendChild(
-        h('a', { class: 'item', href: link('recipe', e.recipe.id) },
+        h('a', { class: 'item' + (e.photos.length ? ' with-photo' : ''), href: link('recipe', e.recipe.id) },
+          e.photos.length ? photoImg(e.photos[0], 'thumb', 'item-photo') : null,
           h('h3', null, r.title),
           r.subtitle ? h('p', null, r.subtitle) : null,
           h('div', { class: 'meta' },
