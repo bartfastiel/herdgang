@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { deflateSync } from 'node:zlib';
 
 const BASE = 'http://localhost:4175';
 const env = { ...process.env, DATA_DIR: 'test-results/e2e-data', ORIGIN: BASE };
@@ -25,6 +26,36 @@ async function signUp(browser: Browser, name: string, role: string): Promise<Pag
   await page.getByRole('button', { name: 'Passkey einrichten' }).click();
   await page.waitForURL(BASE + '/');
   return page;
+}
+
+/** a plain-coloured PNG, as a phone camera would hand over a picture */
+function png(w: number, h: number): Buffer {
+  const crcTable = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc = (b: Buffer) => {
+    let c = 0xffffffff;
+    for (const x of b) c = crcTable[(c ^ x) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type: string, data: Buffer) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+    const c = Buffer.alloc(4);
+    c.writeUInt32BE(crc(td));
+    return Buffer.concat([len, td, c]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 2;
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(w * 3, 0xc8)]);
+  const raw = Buffer.concat(Array.from({ length: h }, () => row));
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
 async function noOverflow(page: Page): Promise<void> {
@@ -107,6 +138,13 @@ test('cooking with a recipe: amounts, info, timers, feedback, versions, PDF, inv
   await expect(page.locator('.src', { hasText: 'Butter' })).toContainText('von Hand');
   await noOverflow(page);
 
+  // a photo with one tap: shrunk to 1600 px, shown above the recipe
+  await page.locator('.photo-add input[type=file]').setInputFiles({ name: 'pfannkuchen.png', mimeType: 'image/png', buffer: png(2400, 1800) });
+  await expect(page.getByRole('img', { name: 'Foto: Pfannkuchen (Beispiel)' })).toBeVisible();
+  expect(await page.locator('.photo-big').evaluate((img: HTMLImageElement) => [img.naturalWidth, img.naturalHeight])).toEqual([1600, 1200]);
+  await expect(page.locator('.photo figcaption')).toContainText('Daniel');
+  await noOverflow(page);
+
   // feedback with name, edit, delete
   await page.getByRole('tab', { name: 'Feedback' }).click();
   await page.getByRole('textbox').fill('Teig etwas zu dick – nächstes Mal 20 g mehr Milch.');
@@ -164,6 +202,9 @@ test('readers comment but do not edit; the command line sees their feedback', as
   await expect(page.locator('.src', { hasText: 'Butter' })).toContainText('Butter gesalzen');
   await expect(page.locator('#naehrwerte').getByRole('button', { name: 'ändern' })).toHaveCount(0);
   expect(cli('nutrition', 'Pfannkuchen (Beispiel)', '--cookbook', 'Testküche')).toMatch(/Butter\s+10 g\s+chosen Q6A4000 Butter gesalzen/);
+  // Daniel's photo comes from the server; Lea may not delete it
+  await expect.poll(() => page.locator('.photo-big').evaluate((img: HTMLImageElement) => img.naturalWidth), { timeout: 15000 }).toBe(1600);
+  await expect(page.locator('.photo').getByRole('button', { name: 'Foto löschen' })).toHaveCount(0);
   await page.getByRole('tab', { name: /Feedback/ }).click();
   await page.getByRole('textbox').fill('Lecker!');
   await page.getByRole('button', { name: 'Speichern' }).click();

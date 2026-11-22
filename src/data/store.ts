@@ -3,10 +3,18 @@
 // One database per cookbook (herdgang-<cookbook id>), so switching cookbooks never mixes data. Every change sets
 // `updated`; deleting leaves a tombstone ({id, deleted: true}) so other devices learn about it. Local mode (no server)
 // and previews (…/pr-<nr>/) get databases of their own and never sync.
-import type { Base, Comment, Cooked, FoodChoice, RecipeRec, Revision } from './types.ts';
+import type { Base, Comment, Cooked, FoodChoice, Photo, RecipeRec, Revision } from './types.ts';
 
-export type StoreName = 'recipes' | 'revisions' | 'comments' | 'foods' | 'cooked';
-export const STORES: StoreName[] = ['recipes', 'revisions', 'comments', 'foods', 'cooked'];
+export type StoreName = 'recipes' | 'revisions' | 'comments' | 'foods' | 'cooked' | 'photos';
+export const STORES: StoreName[] = ['recipes', 'revisions', 'comments', 'foods', 'cooked', 'photos'];
+
+/** photo bytes kept on this device (own photos until uploaded, and always in local mode and previews) */
+export interface PhotoBlobs {
+  full: Blob;
+  thumb: Blob;
+  /** still to be uploaded */
+  pending: boolean;
+}
 
 let name = 'herdgang-local';
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -37,11 +45,12 @@ function changed(): void {
 function open(): Promise<IDBDatabase> {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
-      const req = indexedDB.open(name, 3);
+      const req = indexedDB.open(name, 4);
       req.onupgradeneeded = () => {
         const db = req.result;
         for (const s of STORES) if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: 'id' });
         if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+        if (!db.objectStoreNames.contains('blobs')) db.createObjectStore('blobs');
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
@@ -121,26 +130,48 @@ export async function setMeta(key: string, value: unknown): Promise<void> {
   await done(tx);
 }
 
+export async function putBlobs(id: string, b: PhotoBlobs): Promise<void> {
+  const db = await open();
+  const tx = db.transaction('blobs', 'readwrite');
+  tx.objectStore('blobs').put(b, id);
+  await done(tx);
+}
+
+export async function getBlobs(id: string): Promise<PhotoBlobs | undefined> {
+  const db = await open();
+  return request(db.transaction('blobs').objectStore('blobs').get(id) as IDBRequest<PhotoBlobs | undefined>);
+}
+
+/** ids of photos whose bytes still have to go to the server */
+export async function pendingBlobs(): Promise<string[]> {
+  const db = await open();
+  const os = db.transaction('blobs').objectStore('blobs');
+  const [keys, values] = await Promise.all([request(os.getAllKeys()), request(os.getAll() as IDBRequest<PhotoBlobs[]>)]);
+  return keys.filter((_k, i) => values[i].pending).map(String);
+}
+
 export interface DataSet {
   recipes: RecipeRec[];
   revisions: Revision[];
   comments: Comment[];
   foods: FoodChoice[];
   cooked: Cooked[];
+  photos: Photo[];
 }
 
 export async function loadAll(): Promise<DataSet> {
   const db = await open();
   const tx = db.transaction(STORES, 'readonly');
   const get = <T extends Base>(store: StoreName) => request(tx.objectStore(store).getAll() as IDBRequest<T[]>).then((rows) => rows.filter((r) => !r.deleted));
-  const [recipes, revisions, comments, foods, cooked] = await Promise.all([
+  const [recipes, revisions, comments, foods, cooked, photos] = await Promise.all([
     get<RecipeRec>('recipes'),
     get<Revision>('revisions'),
     get<Comment>('comments'),
     get<FoodChoice>('foods'),
     get<Cooked>('cooked'),
+    get<Photo>('photos'),
   ]);
-  return { recipes, revisions, comments, foods, cooked };
+  return { recipes, revisions, comments, foods, cooked, photos };
 }
 
 export const newId = (): string => {

@@ -101,6 +101,16 @@ label { display: block; font-weight: 600; margin: 12px 0 6px; }
 .item p { margin: 0; color: var(--muted); font-size: 15px; }
 .item .meta { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
 @media (min-width: 700px) { .list { grid-template-columns: 1fr 1fr; } }
+.item.with-photo { display: flow-root; }
+.item-photo { float: right; width: 76px; height: 76px; margin: 0 0 4px 12px; border-radius: 10px; object-fit: cover; background: var(--line); }
+.photo { margin: 0 0 12px; }
+.photo-big { display: block; width: 100%; height: auto; max-height: 55vh; object-fit: cover; border-radius: var(--radius); background: var(--line); }
+.photo figcaption { font-size: 14px; margin-top: 4px; justify-content: space-between; }
+.photo-strip { display: flex; gap: 8px; overflow-x: auto; margin-top: 6px; padding-bottom: 2px; }
+.photo-pick { flex: 0 0 auto; padding: 0; min-height: 0; width: 56px; height: 56px; border-radius: 10px; overflow: hidden; border: 2px solid transparent; background: none; }
+.photo-pick[aria-pressed="true"] { border-color: var(--accent); }
+.photo figcaption button.danger { color: var(--tomato); padding: 8px 0; }
+.photo-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 /* recipe */
 .rhead h1 { margin-bottom: 4px; }

@@ -1,5 +1,5 @@
 // Database (node:sqlite): users with passkeys and sessions, cookbooks (the tenants) with members and invites, the records
-// of each cookbook (recipes, revisions, comments), push subscriptions and pending timer alarms, and an audit log.
+// of each cookbook (recipes, revisions, comments, photos), push subscriptions and pending timer alarms, and an audit log.
 import { DatabaseSync } from 'node:sqlite';
 
 const SCHEMA = [
@@ -91,6 +91,16 @@ const SCHEMA = [
     due INTEGER NOT NULL,
     payload TEXT NOT NULL,
     created INTEGER NOT NULL
+  )`,
+  // photo bytes of a cookbook; the photo itself (recipe, author) is a record in the store `photos`. size: full | thumb
+  `CREATE TABLE IF NOT EXISTS photos (
+    cookbook_id TEXT NOT NULL REFERENCES cookbooks(id),
+    id TEXT NOT NULL,
+    size TEXT NOT NULL,
+    type TEXT NOT NULL,
+    bytes BLOB NOT NULL,
+    created INTEGER NOT NULL,
+    PRIMARY KEY (cookbook_id, id, size)
   )`,
   `CREATE TABLE IF NOT EXISTS kv (
     key TEXT PRIMARY KEY,

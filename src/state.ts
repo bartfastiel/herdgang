@@ -1,6 +1,6 @@
 // Cookbook data in memory, derived views (recipe with its versions and feedback) and all changes (mirrored to IndexedDB).
-import { loadAll, newId, put, remove, type DataSet } from './data/store.ts';
-import type { Comment, Cooked, FoodChoice, RecipeRec, Revision } from './data/types.ts';
+import { loadAll, newId, put, putBlobs, remove, type DataSet } from './data/store.ts';
+import type { Comment, Cooked, FoodChoice, Photo, RecipeRec, Revision } from './data/types.ts';
 import { parse, type Parsed } from './recipe/format.ts';
 import { foodKey } from './recipe/nutrition.ts';
 import { author } from './sync.ts';
@@ -10,11 +10,13 @@ export interface Entry {
   /** oldest first; version n = revisions[n - 1] */
   revisions: Revision[];
   comments: Comment[];
+  /** newest first */
+  photos: Photo[];
   head: Revision;
   title: string;
 }
 
-let data: DataSet = { recipes: [], revisions: [], comments: [], foods: [], cooked: [] };
+let data: DataSet = { recipes: [], revisions: [], comments: [], foods: [], cooked: [], photos: [] };
 let list: Entry[] = [];
 const parsedCache = new Map<string, Parsed>();
 
@@ -42,12 +44,18 @@ function derive(): void {
     l.push(c);
     comments.set(c.recipeId, l);
   }
+  const photos = new Map<string, Photo[]>();
+  for (const ph of data.photos) {
+    const l = photos.get(ph.recipeId) || [];
+    l.push(ph);
+    photos.set(ph.recipeId, l);
+  }
   list = [];
   for (const recipe of data.recipes) {
     const revisions = (revs.get(recipe.id) || []).sort(byTime);
     if (!revisions.length) continue;
     const head = revisions[revisions.length - 1];
-    list.push({ recipe, revisions, comments: (comments.get(recipe.id) || []).sort(byTime), head, title: parsed(head).recipe.title || 'Ohne Titel' });
+    list.push({ recipe, revisions, comments: (comments.get(recipe.id) || []).sort(byTime), photos: (photos.get(recipe.id) || []).sort(byTime).reverse(), head, title: parsed(head).recipe.title || 'Ohne Titel' });
   }
   list.sort((a, b) => a.title.localeCompare(b.title, 'de'));
 }
@@ -104,6 +112,19 @@ export async function deleteRecipe(e: Entry): Promise<void> {
   await reload();
 }
 
+/** a photo of the dish; the bytes stay on this device until the next sync has uploaded them */
+export async function addPhoto(e: Entry, pic: { full: Blob; thumb: Blob; width: number; height: number }): Promise<void> {
+  const ph: Photo = { id: newId(), recipeId: e.recipe.id, author: author(), created: Date.now(), width: pic.width, height: pic.height };
+  await putBlobs(ph.id, { full: pic.full, thumb: pic.thumb, pending: true });
+  await put([{ store: 'photos', value: ph }]);
+  await reload();
+}
+
+export async function deletePhoto(ph: Photo): Promise<void> {
+  await remove('photos', ph.id);
+  await reload();
+}
+
 /** foods chosen by hand in this cookbook: folded ingredient name → code ('' = not counted) */
 export function foodChoices(): Record<string, string> {
   const out: Record<string, string> = {};
@@ -143,5 +164,5 @@ export function cookedCounts(): Record<string, number> {
   return out;
 }
 
-/** whether the current person may change this comment */
-export const mine = (c: Comment): boolean => c.author.id === author().id;
+/** whether the current person may change this comment or photo */
+export const mine = (c: { author: { id: string } }): boolean => c.author.id === author().id;

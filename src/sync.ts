@@ -1,6 +1,7 @@
 // Sync with the own server (only when signed in, never in previews). Local data leads: the app works offline.
-// Records go up and down through /api/records?cookbook=… (newer change wins, deleting as tombstone).
-import { allRaw, applyRemote, getMeta, onLocalChange, setMeta, STORES, useDatabase } from './data/store.ts';
+// Records go up and down through /api/records?cookbook=… (newer change wins, deleting as tombstone); photo bytes go up
+// through /api/photos before their records.
+import { allRaw, applyRemote, getBlobs, getMeta, onLocalChange, pendingBlobs, putBlobs, setMeta, STORES, useDatabase } from './data/store.ts';
 import type { Author, Base } from './data/types.ts';
 
 declare const __PREVIEW__: boolean;
@@ -156,6 +157,20 @@ async function run(): Promise<number> {
   const cb = (cookbook as CookbookInfo).id;
   const q = '?cookbook=' + encodeURIComponent(cb);
   lastError = '';
+  // photo bytes first, so that other devices find them once the photo record arrives
+  for (const id of await pendingBlobs()) {
+    const b = await getBlobs(id);
+    if (!b) continue;
+    for (const size of ['thumb', 'full'] as const) {
+      const blob = b[size];
+      const res = await fetch('/api/photos' + q + '&id=' + id + '&size=' + size, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': blob.type || 'image/jpeg' }, body: blob }).catch(
+        () => new Response(null, { status: 503 }),
+      );
+      if (res.status === 401) return (toLogin(), 0);
+      if (!res.ok) throw new Error('Foto hochladen fehlgeschlagen (' + res.status + ')');
+    }
+    await putBlobs(id, { ...b, pending: false });
+  }
   const lastPush = (await getMeta<number>('pushed')) || 0;
   const changed: RemoteRecord[] = [];
   let maxUpdated = lastPush;

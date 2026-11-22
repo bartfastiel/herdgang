@@ -1,7 +1,10 @@
-// Service worker: the app works offline (hashed files cache-first, the page network-first; never the API), and timer
+// Service worker: the app works offline (hashed files cache-first, the page network-first; of the API only photos, which
+// never change), and timer
 // notifications pushed by the server.
 const CACHE = 'herdgang-__VERSION__';
 const FILES = __FILES__;
+/** photos by id (they never change); kept across app versions */
+const PHOTOS = 'photos-herdgang';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -19,6 +22,21 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
+  if (req.method === 'GET' && url.origin === location.origin && url.pathname === '/api/photos') {
+    e.respondWith(
+      caches.open(PHOTOS).then((c) =>
+        c.match(req).then(
+          (hit) =>
+            hit ||
+            fetch(req).then((res) => {
+              if (res.ok) c.put(req, res.clone());
+              return res;
+            }),
+        ),
+      ),
+    );
+    return;
+  }
   if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.indexOf('/api/') === 0) return;
   if (req.mode === 'navigate') {
     e.respondWith(

@@ -49,6 +49,19 @@ export interface Cooked extends Base {
 }
 
 /**
+ * A photo of a dish. The bytes are not a record: they live in the local store `blobs` until uploaded
+ * (/api/photos?cookbook=…&id=…&size=full|thumb) and are fetched from there on other devices.
+ */
+export interface Photo extends Base {
+  recipeId: string;
+  author: Author;
+  created: number;
+  /** size of the full picture in pixels */
+  width: number;
+  height: number;
+}
+
+/**
  * Which food of the nutrition table an ingredient stands for in this cookbook, chosen by hand
  * (src/recipe/nutrition.ts). id = folded ingredient name; code '' = not counted.
  */
